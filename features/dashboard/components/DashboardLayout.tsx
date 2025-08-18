@@ -12,20 +12,35 @@ import { Sidebar } from './Sidebar'
 import { ErrorBoundary } from './ErrorBoundary'
 import { DashboardProvider } from '../context/DashboardProvider'
 import { RightSidebar } from './dual-sidebar/right-sidebar'
-<<<<<<< HEAD
 import { FloatingChatBox } from './dual-sidebar/floating-chat-box'
-import { ChevronRight, Sparkles } from 'lucide-react'
+import { ChevronRight, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 // Chat mode context
 type ChatMode = 'sidebar' | 'chatbox';
 
+// Shared Message type
+interface Message {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+}
+
 interface ChatModeContextType {
   chatMode: ChatMode;
   setChatMode: (mode: ChatMode) => void;
   isFloatingChatVisible: boolean;
   setIsFloatingChatVisible: (visible: boolean) => void;
+  // Shared messages state
+  messages: Message[];
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  // Shared loading states
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
+  sending: boolean;
+  setSending: (sending: boolean) => void;
 }
 
 const ChatModeContext = createContext<ChatModeContextType | null>(null);
@@ -37,11 +52,6 @@ export function useChatMode() {
   }
   return context;
 }
-=======
-import { ChevronRight, Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -51,7 +61,6 @@ interface DashboardLayoutProps {
 
 function FloatingChatButton() {
   const { toggleSidebar, open } = useSidebarWithSide('right')
-<<<<<<< HEAD
   const { chatMode, isFloatingChatVisible, setIsFloatingChatVisible } = useChatMode()
   
   const handleClick = () => {
@@ -62,8 +71,11 @@ function FloatingChatButton() {
     }
   }
   
-  const Icon = (chatMode === 'sidebar' && open) || (chatMode === 'chatbox' && isFloatingChatVisible) 
-    ? ChevronRight : Sparkles;
+  const Icon = chatMode === 'sidebar' && open 
+    ? ChevronRight 
+    : chatMode === 'chatbox' && isFloatingChatVisible
+    ? X
+    : Sparkles;
   
   return (
     <Button
@@ -77,40 +89,19 @@ function FloatingChatButton() {
       )}
     >
       <Icon className="h-5 w-5" />
-=======
-  const Icon = open ? ChevronRight : Sparkles;
-  
-  return (
-    <Button
-      onClick={toggleSidebar}
-      size="icon"
-      className={cn(
-        "fixed bottom-3 z-40 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300",
-        open ? "right-[calc(30rem+1rem)] bg-background hover:bg-accent" : "right-3"
-      )}
-    >
-        <Icon 
-          
-        />
-        
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
     </Button>
   )
 }
 
 function DashboardLayoutContent({ children, adminMeta, authenticatedItem }: DashboardLayoutProps) {
-<<<<<<< HEAD
   const { chatMode, setChatMode, isFloatingChatVisible, setIsFloatingChatVisible } = useChatMode()
   
-=======
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
   return (
     <>
       <Sidebar adminMeta={adminMeta} user={authenticatedItem} />
       <SidebarInset className="min-w-0">
         {children}
       </SidebarInset>
-<<<<<<< HEAD
       {chatMode === 'sidebar' && <RightSidebar side="right" />}
       <FloatingChatButton />
       
@@ -122,18 +113,18 @@ function DashboardLayoutContent({ children, adminMeta, authenticatedItem }: Dash
           onModeChange={() => setChatMode('sidebar')}
         />
       )}
-=======
-      <RightSidebar side="right" />
-      <FloatingChatButton />
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
     </>
   )
 }
 
-<<<<<<< HEAD
 function ChatModeProvider({ children }: { children: React.ReactNode }) {
-  const [chatMode, setChatMode] = useState<ChatMode>('sidebar')
+  const [chatMode, setChatMode] = useState<ChatMode>('chatbox')
   const [isFloatingChatVisible, setIsFloatingChatVisible] = useState(false)
+  
+  // Shared chat state
+  const [messages, setMessages] = useState<Message[]>([])
+  const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState(false)
   
   // Auto-open chat box when switching to chatbox mode
   const handleSetChatMode = (mode: ChatMode) => {
@@ -148,21 +139,24 @@ function ChatModeProvider({ children }: { children: React.ReactNode }) {
       chatMode,
       setChatMode: handleSetChatMode,
       isFloatingChatVisible,
-      setIsFloatingChatVisible
+      setIsFloatingChatVisible,
+      messages,
+      setMessages,
+      loading,
+      setLoading,
+      sending,
+      setSending
     }}>
       {children}
     </ChatModeContext.Provider>
   )
 }
 
-=======
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
 export function DashboardLayout({ children, adminMeta, authenticatedItem }: DashboardLayoutProps) {
   return (
     <ErrorBoundary>
       <DashboardProvider>
         <AdminMetaProvider initialData={adminMeta}>
-<<<<<<< HEAD
           <ChatModeProvider>
             <SidebarProvider defaultOpenRight={false}>
               <DashboardLayoutContent adminMeta={adminMeta} authenticatedItem={authenticatedItem}>
@@ -170,13 +164,6 @@ export function DashboardLayout({ children, adminMeta, authenticatedItem }: Dash
               </DashboardLayoutContent>
             </SidebarProvider>
           </ChatModeProvider>
-=======
-          <SidebarProvider defaultOpenRight={false}>
-            <DashboardLayoutContent adminMeta={adminMeta} authenticatedItem={authenticatedItem}>
-              {children}
-            </DashboardLayoutContent>
-          </SidebarProvider>
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
         </AdminMetaProvider>
       </DashboardProvider>
     </ErrorBoundary>

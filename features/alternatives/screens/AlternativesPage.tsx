@@ -1,15 +1,25 @@
 import { AlternativesPageClient } from './AlternativesPageClient';
+import { getAlternatives } from '../actions/getAlternatives';
+import { notFound } from 'next/navigation';
 
 interface AlternativesPageProps {
   slug: string;
 }
 
 export async function AlternativesPage({ slug }: AlternativesPageProps) {
-  // Convert slug back to display name
-  const displayName = slug
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  // Fetch real data from our schema
+  const result = await getAlternatives(slug);
 
-  return <AlternativesPageClient proprietary={displayName} slug={slug} />;
+  if (!result.success || !result.data) {
+    notFound();
+  }
+
+  const proprietaryApp = result.data;
+
+  return (
+    <AlternativesPageClient 
+      proprietaryApp={proprietaryApp}
+      slug={slug} 
+    />
+  );
 }

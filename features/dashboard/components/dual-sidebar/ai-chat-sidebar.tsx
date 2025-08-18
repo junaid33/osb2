@@ -5,18 +5,19 @@ import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
-import { ChatContainerRoot, ChatContainerContent, ChatContainerScrollAnchor } from "./chat-container";
+import {
+  ChatContainerRoot,
+  ChatContainerContent,
+  ChatContainerScrollAnchor,
+} from "./chat-container";
 import { ScrollButton } from "./scroll-button";
 import {
   RefreshCcwIcon,
   ArrowUp,
   Info,
   X,
-<<<<<<< HEAD
   MessageSquare,
   PanelRight,
-=======
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
 } from "lucide-react";
 
 // UI Components
@@ -31,7 +32,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { getSharedKeys, checkSharedKeysAvailable } from "@/features/dashboard/actions/ai-chat";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectValue,
+} from "@/components/ui/select";
+import * as SelectPrimitive from "@radix-ui/react-select";
+import {
+  getSharedKeys,
+  checkSharedKeysAvailable,
+} from "@/features/dashboard/actions/ai-chat";
 import { ModeSplitButton } from "./mode-split-button";
 import {
   Tooltip,
@@ -40,13 +53,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSidebarWithSide } from "@/components/ui/sidebar";
-<<<<<<< HEAD
 import { useChatMode } from "../DashboardLayout";
 
+
 // Chat mode types
-type ChatMode = 'sidebar' | 'chatbox';
-=======
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
+type ChatMode = "sidebar" | "chatbox";
 
 // Types
 interface Message {
@@ -66,6 +77,7 @@ interface AiChatConfig {
     model: string;
     maxTokens: string;
   };
+  chatMode?: "sidebar" | "chatbox";
 }
 
 // LocalStorage Manager
@@ -75,17 +87,20 @@ class AiChatStorage {
     const onboarded = localStorage.getItem("aiChatOnboarded") === "true";
     const keyMode =
       (localStorage.getItem("aiKeyMode") as "env" | "local") || "env";
+    const chatMode =
+      (localStorage.getItem("aiChatMode") as "sidebar" | "chatbox") || "chatbox";
 
     const localKeys =
       keyMode === "local"
         ? {
             apiKey: localStorage.getItem("openRouterApiKey") || "",
-            model: localStorage.getItem("openRouterModel") || "openai/gpt-4o-mini",
+            model:
+              localStorage.getItem("openRouterModel") || "openai/gpt-4o-mini",
             maxTokens: localStorage.getItem("openRouterMaxTokens") || "4000",
           }
         : undefined;
 
-    return { enabled, onboarded, keyMode, localKeys };
+    return { enabled, onboarded, keyMode, localKeys, chatMode };
   }
 
   static saveConfig(config: Partial<AiChatConfig>) {
@@ -98,6 +113,9 @@ class AiChatStorage {
     if (config.keyMode !== undefined) {
       localStorage.setItem("aiKeyMode", config.keyMode);
     }
+    if (config.chatMode !== undefined) {
+      localStorage.setItem("aiChatMode", config.chatMode);
+    }
     if (config.localKeys) {
       localStorage.setItem("openRouterApiKey", config.localKeys.apiKey);
       localStorage.setItem("openRouterModel", config.localKeys.model);
@@ -105,8 +123,6 @@ class AiChatStorage {
     }
   }
 }
-
-
 
 // Shared Keys Modal
 const SharedKeysModal = ({
@@ -116,7 +132,10 @@ const SharedKeysModal = ({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  sharedKeysStatus: {available: boolean; missing: {apiKey: boolean; model: boolean; maxTokens: boolean}} | null;
+  sharedKeysStatus: {
+    available: boolean;
+    missing: { apiKey: boolean; model: boolean; maxTokens: boolean };
+  } | null;
 }) => {
   const setVars = [];
   const missingVars = [];
@@ -150,12 +169,10 @@ const SharedKeysModal = ({
             When using shared keys, the API keys are configured at the
             application level through environment variables.
           </p>
-          
+
           {setVars.length > 0 && (
             <div className="bg-muted/40 rounded-lg p-3 border border-transparent ring-1 ring-foreground/10">
-              <h4 className="font-medium text-sm mb-2">
-                Available Keys
-              </h4>
+              <h4 className="font-medium text-sm mb-2">Available Keys</h4>
               <div className="space-y-1">
                 {setVars.map((envVar) => (
                   <div key={envVar.name} className="flex items-center gap-2">
@@ -217,7 +234,9 @@ const LocalKeysModal = ({
   onSave: (keys: { apiKey: string; model: string; maxTokens: string }) => void;
 }) => {
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState(initialKeys?.model || "openai/gpt-4o-mini");
+  const [model, setModel] = useState(
+    initialKeys?.model || "openai/gpt-4o-mini"
+  );
   const [maxTokens, setMaxTokens] = useState(initialKeys?.maxTokens || "4000");
   const [showMaskedKey, setShowMaskedKey] = useState(false);
 
@@ -259,7 +278,10 @@ const LocalKeysModal = ({
                     <Info className="size-3 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>You can get your OpenRouter API key at https://openrouter.ai/settings/keys</p>
+                    <p>
+                      You can get your OpenRouter API key at
+                      https://openrouter.ai/settings/keys
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -274,7 +296,9 @@ const LocalKeysModal = ({
                   setShowMaskedKey(false); // Hide masked placeholder when user types
                 }
               }}
-              placeholder={showMaskedKey ? "••••••••••••••••••••••••••••••••" : "sk-or-..."}
+              placeholder={
+                showMaskedKey ? "••••••••••••••••••••••••••••••••" : "sk-or-..."
+              }
             />
           </div>
           <div>
@@ -286,7 +310,10 @@ const LocalKeysModal = ({
                     <Info className="size-3 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>You can get different model slugs from https://openrouter.ai/models</p>
+                    <p>
+                      You can get different model slugs from
+                      https://openrouter.ai/models
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -300,7 +327,9 @@ const LocalKeysModal = ({
             />
           </div>
           <div>
-            <Label htmlFor="maxTokens" className="block mb-2">Max Tokens</Label>
+            <Label htmlFor="maxTokens" className="block mb-2">
+              Max Tokens
+            </Label>
             <Input
               id="maxTokens"
               type="number"
@@ -318,7 +347,11 @@ const LocalKeysModal = ({
           >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!apiKey && !initialKeys?.apiKey} size="sm">
+          <Button
+            onClick={handleSave}
+            disabled={!apiKey && !initialKeys?.apiKey}
+            size="sm"
+          >
             Save Keys
           </Button>
         </DialogFooter>
@@ -336,7 +369,11 @@ function ChatMessage({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`text-base flex items-center gap-2 ${isUser ? "justify-end" : ""}`}>
+    <div
+      className={`text-base flex items-center gap-2 ${
+        isUser ? "justify-end" : ""
+      }`}
+    >
       {/* {isUser ? (
         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-500 to-indigo-600 shadow-sm order-1 flex-shrink-0" />
       ) : (
@@ -351,7 +388,9 @@ function ChatMessage({
       <div
         className={cn(
           "max-w-[calc(100%-2rem)] break-words overflow-hidden",
-          isUser ? "bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-md" : "space-y-1"
+          isUser
+            ? "bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-md"
+            : "space-y-1"
         )}
       >
         {children}
@@ -431,24 +470,22 @@ function SidebarOnboarding({ onComplete }: { onComplete: () => void }) {
 // Main Sidebar Chat Component
 export function AiChatSidebar() {
   const router = useRouter();
-  const { toggleSidebar } = useSidebarWithSide('right');
-<<<<<<< HEAD
-  const { chatMode, setChatMode } = useChatMode();
-=======
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
+  const { toggleSidebar } = useSidebarWithSide("right");
+  const { chatMode, setChatMode, messages, setMessages, loading, setLoading, sending, setSending } = useChatMode();
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [sending, setSending] = useState(false);
   const [aiConfig, setAiConfig] = useState<AiChatConfig | null>(null);
   const [selectedMode, setSelectedMode] = useState<
     "env" | "local" | "disabled"
   >("env");
   const [showLocalKeysModal, setShowLocalKeysModal] = useState(false);
   const [showSharedKeysModal, setShowSharedKeysModal] = useState(false);
-  const [sharedKeysStatus, setSharedKeysStatus] = useState<{available: boolean; missing: {apiKey: boolean; model: boolean; maxTokens: boolean}} | null>(null);
+  const [sharedKeysStatus, setSharedKeysStatus] = useState<{
+    available: boolean;
+    missing: { apiKey: boolean; model: boolean; maxTokens: boolean };
+  } | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  
+  const [isLoadingSharedKeys, setIsLoadingSharedKeys] = useState(true);
+
   // Remove the old useStickToBottom hook - now handled by PromptKit components
 
   // Load AI config on component mount
@@ -463,15 +500,17 @@ export function AiChatSidebar() {
     setIsInitializing(false);
   }, []);
 
-
   // Check shared keys status
   useEffect(() => {
     const checkStatus = async () => {
       try {
+        setIsLoadingSharedKeys(true);
         const status = await checkSharedKeysAvailable();
         setSharedKeysStatus(status);
       } catch (error) {
-        console.error('Failed to check shared keys status:', error);
+        console.error("Failed to check shared keys status:", error);
+      } finally {
+        setIsLoadingSharedKeys(false);
       }
     };
     checkStatus();
@@ -492,6 +531,9 @@ export function AiChatSidebar() {
     if (selectedMode === "local") {
       return isLocalKeysConfigured() ? "indigo" : "red";
     } else if (selectedMode === "env") {
+      if (isLoadingSharedKeys) {
+        return "indigo"; // Show neutral while loading
+      }
       return isSharedKeysConfigured() ? "indigo" : "red";
     }
     return "indigo";
@@ -556,13 +598,15 @@ export function AiChatSidebar() {
   // Re-check shared keys status when needed
   const recheckSharedKeysStatus = async () => {
     try {
+      setIsLoadingSharedKeys(true);
       const status = await checkSharedKeysAvailable();
       setSharedKeysStatus(status);
     } catch (error) {
-      console.error('Failed to recheck shared keys status:', error);
+      console.error("Failed to recheck shared keys status:", error);
+    } finally {
+      setIsLoadingSharedKeys(false);
     }
   };
-
 
   const handleSubmit = async () => {
     if (!input.trim() || !aiConfig?.enabled) return;
@@ -592,7 +636,8 @@ export function AiChatSidebar() {
         if (!aiConfig.localKeys?.apiKey || !aiConfig.localKeys?.model) {
           const errorMessage: Message = {
             id: (Date.now() + 1).toString(),
-            content: "Error: Local API key and model are required. Please configure them in settings.",
+            content:
+              "Error: Local API key and model are required. Please configure them in settings.",
             isUser: false,
             timestamp: new Date(),
           };
@@ -649,7 +694,9 @@ export function AiChatSidebar() {
         } catch (error) {
           const errorMessage: Message = {
             id: (Date.now() + 1).toString(),
-            content: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+            content: `Error: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
             isUser: false,
             timestamp: new Date(),
           };
@@ -669,7 +716,7 @@ export function AiChatSidebar() {
         } catch {
           errorMessage = `HTTP ${res.status}: ${res.statusText}`;
         }
-        
+
         const errorMsg: Message = {
           id: (Date.now() + 1).toString(),
           content: `Error: ${errorMessage}`,
@@ -705,7 +752,7 @@ export function AiChatSidebar() {
         const lines = chunk.split("\n");
 
         for (const line of lines) {
-          console.log('STREAM LINE DEBUG:', line);
+          console.log("STREAM LINE DEBUG:", line);
           if (line.startsWith("0:")) {
             const text = line.slice(2);
             if (text.startsWith('"') && text.endsWith('"')) {
@@ -723,26 +770,28 @@ export function AiChatSidebar() {
             try {
               const dataInfo = JSON.parse(line.slice(2));
               if (dataInfo.dataHasChanged) {
-                console.log('Data has changed, refreshing page');
+                console.log("Data has changed, refreshing page");
                 router.refresh();
               }
             } catch (error) {
-              console.error('Failed to parse data change notification:', error);
+              console.error("Failed to parse data change notification:", error);
             }
           } else if (line.startsWith("3:")) {
             // Error in stream - replace the thinking message with error
-            console.log('ERROR STREAM LINE DETECTED:', line);
+            console.log("ERROR STREAM LINE DETECTED:", line);
             try {
               const errorText = line.slice(2);
-              console.log('ERROR TEXT TO PARSE:', errorText);
+              console.log("ERROR TEXT TO PARSE:", errorText);
               const errorData = JSON.parse(errorText);
-              console.log('PARSED ERROR DATA:', errorData);
+              console.log("PARSED ERROR DATA:", errorData);
               const finalErrorMsg = `Error: ${
-                typeof errorData === 'string' 
-                  ? errorData 
-                  : errorData.error || errorData.message || "Streaming error occurred"
+                typeof errorData === "string"
+                  ? errorData
+                  : errorData.error ||
+                    errorData.message ||
+                    "Streaming error occurred"
               }`;
-              console.log('FINAL ERROR MESSAGE TO SHOW:', finalErrorMsg);
+              console.log("FINAL ERROR MESSAGE TO SHOW:", finalErrorMsg);
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === aiMessage.id
@@ -755,10 +804,13 @@ export function AiChatSidebar() {
             } catch (parseError) {
               // Failed to parse error JSON, but still show the raw error text
               const errorText = line.slice(2);
-              console.log('PARSE ERROR OCCURRED:', parseError);
-              console.log('RAW ERROR TEXT FROM STREAM:', errorText);
-              const fallbackMsg = `Error: ${errorText || "Streaming error occurred. Please check that your API key and model are correct."}`;
-              console.log('FALLBACK ERROR MESSAGE TO SHOW:', fallbackMsg);
+              console.log("PARSE ERROR OCCURRED:", parseError);
+              console.log("RAW ERROR TEXT FROM STREAM:", errorText);
+              const fallbackMsg = `Error: ${
+                errorText ||
+                "Streaming error occurred. Please check that your API key and model are correct."
+              }`;
+              console.log("FALLBACK ERROR MESSAGE TO SHOW:", fallbackMsg);
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === aiMessage.id
@@ -808,20 +860,29 @@ export function AiChatSidebar() {
       {/* Header */}
       <div className="flex items-center justify-between p-5">
         <h3 className="font-medium text-muted-foreground">AI Assistant</h3>
-<<<<<<< HEAD
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setChatMode(chatMode === 'sidebar' ? 'chatbox' : 'sidebar')}
-            className="h-8 w-8"
-          >
-            {chatMode === 'sidebar' ? (
-              <MessageSquare className="h-4 w-4" />
-            ) : (
+          <Select value="sidebar" onValueChange={(value) => {
+            if (value === "chatbox") {
+              setChatMode("chatbox");
+            }
+          }}>
+            <SelectPrimitive.Trigger className="h-8 w-8 p-0 border-0 bg-transparent hover:bg-accent rounded flex items-center justify-center">
               <PanelRight className="h-4 w-4" />
-            )}
-          </Button>
+            </SelectPrimitive.Trigger>
+            <SelectContent className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2 [&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2">
+              <SelectGroup>
+                <SelectLabel className="text-[10px] text-muted-foreground uppercase font-medium pl-2">Open assistant in</SelectLabel>
+                <SelectItem value="chatbox">
+                  <MessageSquare className="size-4 opacity-60" />
+                  <span className="truncate">Chat bubble</span>
+                </SelectItem>
+                <SelectItem value="sidebar">
+                  <PanelRight className="size-4 opacity-60" />
+                  <span className="truncate">Sidebar</span>
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           <Button
             variant="ghost"
             size="icon"
@@ -831,22 +892,12 @@ export function AiChatSidebar() {
             <X className="h-4 w-4" />
           </Button>
         </div>
-=======
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className="h-8 w-8"
-        >
-          <X className="h-4 w-4" />
-        </Button>
->>>>>>> cb5013d8343afa01a14cfb402ae976bec47abad5
       </div>
 
       {/* Messages */}
       <ChatContainerRoot className="flex-1 pt-3 px-3 relative">
         <ChatContainerContent className="space-y-3">
-        {messages.map((message) => (
+          {messages.map((message) => (
             <ChatMessage key={message.id} isUser={message.isUser}>
               {message.isUser ? (
                 <p className="whitespace-pre-wrap break-words">
@@ -906,12 +957,11 @@ export function AiChatSidebar() {
                 </>
               )}
             </ChatMessage>
-          ))
-        }
-        
-        <ChatContainerScrollAnchor />
+          ))}
+
+          <ChatContainerScrollAnchor />
         </ChatContainerContent>
-        
+
         {/* PromptKit Scroll Button */}
         {messages.length > 0 && (
           <div className="absolute bottom-4 right-4">
@@ -961,7 +1011,7 @@ export function AiChatSidebar() {
           </div>
         </div>
       ) : (
-          <SidebarOnboarding onComplete={handleOnboardingComplete} />
+        <SidebarOnboarding onComplete={handleOnboardingComplete} />
       )}
 
       <LocalKeysModal

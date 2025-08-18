@@ -1,61 +1,106 @@
 'use client'
 
-import { ReactNode } from 'react'
+import Link from 'next/link'
 import Hero from '../components/Hero'
 
-interface LandingPageClientProps {
-  sidebarSlot: ReactNode
-  alternativesSlot: ReactNode
+interface PopularApp {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  websiteUrl: string | null
+  simpleIconSlug: string | null
+  simpleIconColor: string | null
+  openSourceAlternativesCount: number
 }
 
-export function LandingPageClient({ sidebarSlot, alternativesSlot }: LandingPageClientProps) {
+interface LandingPageClientProps {
+  popularApps: PopularApp[]
+}
+
+export function LandingPageClient({ popularApps }: LandingPageClientProps) {
   return (
     <>
       <Hero />
 
-      {/* Page content */}
-      <section>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="py-8 md:py-16">
-            <div className="md:flex md:justify-between" data-sticky-container>
-              {sidebarSlot}
-
-              {/* Main content */}
-              <div className="md:grow">
-                {alternativesSlot}
-              </div>
-            </div>
+      {/* Popular Proprietary Apps Section */}
+      <div id="popular-apps" className="mx-auto px-6 py-12 sm:py-24 max-w-5xl md:max-w-7xl">
+        <div className="space-y-10">
+          <div className="space-y-5">
+            <h1 className="text-4xl lg:text-5xl font-medium tracking-tight text-center">
+              Popular Proprietary Apps
+            </h1>
+            <p className="text-center text-muted-foreground">
+              Find open source alternatives
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {popularApps.map((app, index) => (
+              <Link 
+                key={app.id} 
+                href={`/alternatives/${app.slug}`}
+                className={`
+                  ${index === 1 ? 
+                    'relative overflow-hidden rounded-xl border border-slate-800 p-[1px] backdrop-blur-3xl' : 
+                    'bg-card p-7 rounded-xl border hover:bg-card/80 transition-colors'
+                  }
+                `}
+              >
+                {index === 1 && (
+                  <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]"></span>
+                )}
+                
+                <div className={`
+                  ${index === 1 ? 
+                    'inline-flex flex-col gap-3 h-full w-full rounded-xl bg-slate-950 backdrop-blur-3xl p-7' : 
+                    'flex flex-col gap-3'
+                  }
+                `}>
+                  <div 
+                    className={`
+                      p-2 rounded-lg w-11 h-11 justify-center flex items-center
+                      ${index === 1 ? 'bg-transparent border' : 'bg-muted'}
+                    `}
+                    style={app.simpleIconColor ? { backgroundColor: `${app.simpleIconColor}20` } : {}}
+                  >
+                    {app.simpleIconSlug ? (
+                      <img 
+                        src={`https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${app.simpleIconSlug}.svg`}
+                        alt={`${app.name} icon`}
+                        className="w-5 h-5"
+                        style={app.simpleIconColor ? { filter: `brightness(0) saturate(100%) ${app.simpleIconColor}` } : {}}
+                      />
+                    ) : (
+                      <div 
+                        className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center text-xs font-medium"
+                        style={{ color: app.simpleIconColor || '#888' }}
+                      >
+                        {app.name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <p className="font-medium">{app.name}</p>
+                  
+                  <p className={`text-sm ${index === 1 ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
+                    {app.description || `Find open source alternatives to ${app.name}`}
+                  </p>
+                  
+                  {app.openSourceAlternativesCount > 0 && (
+                    <div className={`flex gap-1 items-center font-semibold text-sm ${index === 1 ? 'text-blue-500' : 'text-primary'}`}>
+                      <span>{app.openSourceAlternativesCount} alternatives</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
-      </section>
-
-      {/* Built on Bolt Footer */}
-      <footer className="py-8 border-t">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-row items-center justify-center gap-x-3">
-            {/* Left crop line */}
-            <div className="w-8 h-px bg-border"></div>
-            
-            <span className="text-sm text-muted-foreground">Built using</span>
-            
-            <a 
-              href="https://bolt.new" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-block w-10 h-9 hover:opacity-80 transition-opacity text-foreground"
-              style={{
-                backgroundImage: `url("data:image/svg+xml;utf8,%3Csvg width='1em' height='1em' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 51 21.9'%3E%3Cpath fill='currentColor' d='M24.1 19.3c-4.7 0-7-2.7-7-6.1s3.2-7.7 7.9-7.7 7 2.7 7 6.1-3.2 7.7-7.9 7.7Zm.2-4.3c1.6 0 2.7-1.5 2.7-3.1s-.8-2-2.2-2-2.7 1.5-2.7 3.1.8 2 2.2 2ZM37 19h-4.9l4-18.2H41l-4 18.1Z'/%3E%3Cpath fill='currentColor' d='M9.6 19.3c-1.5 0-3-.5-3.8-1.7L5.5 19 0 21.9.6 19 4.6.8h4.9L8.1 7.2c1.1-1.2 2.2-1.7 3.6-1.7 3 0 4.9 1.9 4.9 5.5s-2.3 8.3-7 8.3Zm1.9-7.3c0 1.7-1.2 3-2.8 3s-1.7-.3-2.2-.9l.8-3.3c.6-.6 1.2-.9 2-.9 1.2 0 2.2.9 2.2 2.2Z' fill-rule='evenodd' clip-rule='evenodd'/%3E%3Cpath fill='currentColor' d='M46.1 19.3c-2.8 0-4.9-1-4.9-3.3s0-.7.1-1l1.1-4.9h-2.2l1-4.2h2.2l.8-3.6L49.7 0l-.6 2.3-.8 3.6H51l-1 4.2h-2.7l-.7 3.2v.6c0 .6.4 1.1 1.2 1.1s.6 0 .7-.1v3.9c-.5.4-1.4.5-2.3.5Z'/%3E%3C/svg%3E")`,
-                backgroundSize: 'contain',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center'
-              }}
-            />
-            
-            {/* Right crop line */}
-            <div className="w-8 h-px bg-border"></div>
-          </div>
-        </div>
-      </footer>
+      </div>
     </>
   )
 }

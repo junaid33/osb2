@@ -1,5 +1,9 @@
 import { LandingPageClient } from './LandingPageClient'
+import { getPopularApps } from '../actions/getPopularApps'
 
 export async function LandingPage() {
-  return <LandingPageClient />
+  const popularAppsResponse = await getPopularApps()
+  const popularApps = popularAppsResponse.success ? popularAppsResponse.data : []
+
+  return <LandingPageClient popularApps={popularApps || []} />
 }
