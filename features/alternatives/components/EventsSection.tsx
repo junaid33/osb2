@@ -14,24 +14,20 @@ export function EventsSection({ alternatives }: EventsSectionProps) {
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-bold">Open Source Alternatives</h2>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="bg-zinc-800 border-none hover:bg-zinc-700 flex items-center gap-1"
+          <Button className="ring-0"
           >
             <PlusCircle className="h-4 w-4" />
             <span>Submit Alternative</span>
           </Button>
           <Button
             size="icon"
-            variant="outline"
-            className="bg-zinc-800 border-none hover:bg-zinc-700"
+            className="ring-0"
           >
             <Rss className="h-4 w-4" />
           </Button>
           <Button
             size="icon"
-            variant="outline"
-            className="bg-zinc-800 border-none hover:bg-zinc-700"
+            className="ring-0"
           >
             <Search className="h-4 w-4" />
           </Button>

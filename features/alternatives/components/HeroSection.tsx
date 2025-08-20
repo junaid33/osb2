@@ -1,8 +1,7 @@
 import React from 'react'
-import { Building2 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Clock, ChevronDown } from 'lucide-react'
 import NoiseBackground from './NoiseBackground'
+import ToolIcon from '@/components/ToolIcon'
 import type { ProprietaryApp } from '../actions/getAlternatives'
 
 interface HeroSectionProps {
@@ -12,38 +11,43 @@ interface HeroSectionProps {
 export function HeroSection({ proprietaryApp }: HeroSectionProps) {
   return (
     <div className="relative h-[500px] overflow-hidden bg-black">
-      {/* Dynamic Noise Background with app's color */}
-      <NoiseBackground 
-        color={proprietaryApp.simpleIconColor || "#10b981"}
-        className="absolute inset-0 z-0"
-      />
+      {/* Noise Background */}
+      <div className="absolute inset-0 w-full h-full">
+        <NoiseBackground 
+          color={proprietaryApp.simpleIconColor || "#10b981"}
+        />
+      </div>
       
-      <div className="relative z-10 flex flex-col justify-center h-full max-w-3xl px-6 md:px-12">
-        <div 
-          className="backdrop-blur-sm w-16 h-16 rounded-full flex items-center justify-center mb-4"
-          style={{ 
-            backgroundColor: `${proprietaryApp.simpleIconColor || '#10b981'}20` 
-          }}
-        >
-          <Building2 className="h-8 w-8 text-white" />
+      {/* Content */}
+      <div className="relative z-10 flex flex-col justify-center h-full max-w-5xl px-6 md:px-12 mx-auto">
+        <div className="mb-4">
+          <ToolIcon
+            name={proprietaryApp.name}
+            simpleIconSlug={proprietaryApp.simpleIconSlug}
+            simpleIconColor={proprietaryApp.simpleIconColor}
+            size={64}
+          />
         </div>
         <h2 className="text-xl text-gray-200 font-light mb-1">
-          Find open source alternatives to
+          Open Source Alternatives to
         </h2>
-        <h1 className="text-5xl md:text-6xl font-bold text-white mb-2">
-          {proprietaryApp.name}
-        </h1>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-5xl md:text-6xl font-bold text-white">
+            {proprietaryApp.name}
+          </h1>
+          <button className="text-white/70 hover:text-white transition-colors">
+            <ChevronDown className="h-8 w-8" />
+          </button>
+        </div>
         <div className="flex items-center text-gray-300 mb-6">
-          <span className="text-sm">{proprietaryApp.openSourceAlternatives.length} alternatives found</span>
+          <Clock className="h-4 w-4 mr-2" />
+          <span className="text-sm">{proprietaryApp.websiteUrl || 'website.com'}</span>
         </div>
         <div className="w-full h-px bg-gray-400/30 mb-6"></div>
         <p className="text-white/90 max-w-xl mb-8">
-          {proprietaryApp.description || 
-           `Discover powerful open source alternatives to ${proprietaryApp.name} that offer 
-           similar functionality, better customization, and freedom from vendor lock-in.
-           Choose from community-driven solutions that prioritize transparency and innovation.`}
+          San Diego's event scene is vibrant with tech gatherings, creative meetups and cultural celebrations, reflecting the city's dynamic blend of technology, diversity, and innovation.
         </p>
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        {/* <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <Input
             type="email"
             placeholder="me@email.com"
@@ -52,10 +56,10 @@ export function HeroSection({ proprietaryApp }: HeroSectionProps) {
               backgroundColor: `${proprietaryApp.simpleIconColor || '#10b981'}30` 
             }}
           />
-          <Button className="bg-white text-black hover:bg-gray-200 px-8">
+          <Button size="lg">
             Subscribe
           </Button>
-        </div>
+        </div> */}
       </div>
     </div>
   )

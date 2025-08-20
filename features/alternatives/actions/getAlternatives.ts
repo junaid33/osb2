@@ -2,6 +2,15 @@
 
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 
+export interface Capability {
+  id: string
+  name: string
+  slug: string
+  description?: string
+  category?: string
+  complexity?: string
+}
+
 export interface ProprietaryApp {
   id: string
   name: string
@@ -11,6 +20,7 @@ export interface ProprietaryApp {
   simpleIconSlug?: string
   simpleIconColor?: string
   openSourceAlternatives: OpenSourceAlternative[]
+  capabilities: Capability[]
 }
 
 export interface OpenSourceAlternative {
@@ -45,6 +55,16 @@ export async function getAlternatives(slug: string): Promise<GetAlternativesResp
         websiteUrl
         simpleIconSlug
         simpleIconColor
+        capabilities {
+          capability {
+            id
+            name
+            slug
+            description
+            category
+            complexity
+          }
+        }
         openSourceAlternatives {
           id
           name
@@ -89,6 +109,14 @@ export async function getAlternatives(slug: string): Promise<GetAlternativesResp
       websiteUrl: proprietaryApps[0].websiteUrl,
       simpleIconSlug: proprietaryApps[0].simpleIconSlug,
       simpleIconColor: proprietaryApps[0].simpleIconColor,
+      capabilities: proprietaryApps[0].capabilities?.map((pc: any) => ({
+        id: pc.capability.id,
+        name: pc.capability.name,
+        slug: pc.capability.slug,
+        description: pc.capability.description || '',
+        category: pc.capability.category,
+        complexity: pc.capability.complexity
+      })) || [],
       openSourceAlternatives: proprietaryApps[0].openSourceAlternatives.map((alt: any) => ({
         id: alt.id,
         name: alt.name,

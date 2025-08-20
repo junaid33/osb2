@@ -1,5 +1,7 @@
 import React from 'react'
-import { Star, GitFork, ExternalLink, Github } from 'lucide-react'
+import { Star, GitFork, MapPin, ExternalLink, Github, Hammer } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import ToolIcon from '@/components/ToolIcon'
 
 interface AlternativeCardProps {
   name: string
@@ -12,6 +14,16 @@ interface AlternativeCardProps {
   tags?: string[]
 }
 
+// Generate placeholder avatars for the avatar group
+const generateAvatars = (count: number) => {
+  const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 'bg-yellow-500'];
+  return Array.from({ length: Math.min(count, 4) }, (_, i) => ({
+    id: i,
+    color: colors[i % colors.length],
+    initials: String.fromCharCode(65 + i)
+  }));
+};
+
 export function AlternativeCard({
   name,
   description,
@@ -22,74 +34,85 @@ export function AlternativeCard({
   repositoryUrl,
   tags = [],
 }: AlternativeCardProps) {
+  const starCount = githubStars || 0;
+  const forkCount = githubForks || 0;
+  const totalEngagement = starCount + forkCount;
+  const avatars = generateAvatars(4);
+  
   return (
     <div className="bg-zinc-900 rounded-lg overflow-hidden mb-4 p-6">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h3 className="text-xl font-bold mb-2">{name}</h3>
-          <p className="text-gray-300 mb-4">{description}</p>
-          
-          {/* Stats */}
-          <div className="flex items-center gap-4 mb-4">
-            {githubStars !== undefined && (
-              <div className="flex items-center gap-1 text-sm text-gray-400">
-                <Star className="h-4 w-4" />
-                <span>{githubStars.toLocaleString()}</span>
-              </div>
-            )}
-            {githubForks !== undefined && (
-              <div className="flex items-center gap-1 text-sm text-gray-400">
-                <GitFork className="h-4 w-4" />
-                <span>{githubForks.toLocaleString()}</span>
-              </div>
-            )}
-            {license && (
-              <span className="inline-block px-2 py-1 text-xs bg-blue-900/50 text-blue-400 rounded">
-                {license}
-              </span>
-            )}
+          {/* Time placeholder */}
+          <div className="text-gray-400 text-sm mb-2">
+            Open Source
           </div>
-
-          {/* Tags */}
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {tags.map((tag, index) => (
-                <span 
-                  key={index}
-                  className="inline-block px-2 py-1 text-xs bg-zinc-800 text-gray-300 rounded"
-                >
-                  {tag}
+          
+          {/* Title */}
+          <h3 className="text-2xl font-bold text-white mb-3">{name}</h3>
+          
+          {/* Organization */}
+          <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+            <ToolIcon
+              name={name}
+              size={24}
+              simpleIconColor="#3b82f6"
+            />
+            <span>By {license || 'Open Source Community'}</span>
+          </div>
+          
+          {/* Location */}
+          <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
+            <MapPin className="h-4 w-4" />
+            <span>GitHub Repository</span>
+          </div>
+          
+          {/* Badge and Avatar Group */}
+          <div className="flex items-center justify-between mb-4">
+            <span className="inline-flex items-center px-3 py-1 text-sm bg-green-900/50 text-green-400 rounded-full">
+              Suggested: {starCount > 0 ? `${starCount} stars` : 'New'}
+            </span>
+            
+            {/* Avatar Group */}
+            <div className="flex items-center">
+              <div className="flex -space-x-2">
+                {avatars.map((avatar) => (
+                  <div
+                    key={avatar.id}
+                    className={`w-8 h-8 rounded-full ${avatar.color} flex items-center justify-center text-white text-xs font-medium border-2 border-zinc-900`}
+                  >
+                    {avatar.initials}
+                  </div>
+                ))}
+              </div>
+              {totalEngagement > 4 && (
+                <span className="ml-2 text-sm text-gray-400">
+                  +{Math.max(0, totalEngagement - 4)}
                 </span>
-              ))}
+              )}
             </div>
-          )}
+          </div>
+          
+          {/* Build Button */}
+          <Button 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => window.open(`/build?alternative=${name.toLowerCase().replace(/\s+/g, '-')}`, '_blank')}
+          >
+            <Hammer className="h-4 w-4 mr-2" />
+            Build with {name}
+          </Button>
         </div>
-      </div>
-
-      {/* Links */}
-      <div className="flex gap-2">
-        {websiteUrl && (
-          <a 
-            href={websiteUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Website
-          </a>
-        )}
-        {repositoryUrl && (
-          <a 
-            href={repositoryUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-3 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-sm rounded transition-colors"
-          >
-            <Github className="h-4 w-4" />
-            GitHub
-          </a>
-        )}
+        
+        {/* Right side card */}
+        <div className="w-32 h-24 ml-6 flex-shrink-0">
+          <div className="w-full h-full rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-3">
+            <div className="text-center text-xs text-white">
+              <div className="font-bold mb-1">OPEN</div>
+              <div className="font-bold mb-1">SOURCE</div>
+              <div className="text-gray-200 text-xs">Alternative</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

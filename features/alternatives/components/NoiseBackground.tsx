@@ -83,10 +83,10 @@ const NoiseBackground: React.FC<NoiseBackgroundProps> = ({
           </filter>
           <radialGradient
             id="themeGlow"
-            cx="50%"
+            cx="0%"
             cy="0%"
             r="100%"
-            fx="50%"
+            fx="0%"
             fy="0%"
           >
             <stop offset="0%" stopColor={colors.primary} stopOpacity="0.4" />
