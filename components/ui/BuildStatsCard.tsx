@@ -179,6 +179,7 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
   const [filteredApps, setFilteredApps] = useState<OpenSourceApp[]>([]);
   const [apps, setApps] = useState<OpenSourceApp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const appSearchRef = useRef<HTMLInputElement>(null);
 
@@ -396,24 +397,34 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
             
             {/* Custom dropdown trigger */}
             <div className="relative flex-1 min-w-0">
-              <button
-                onClick={toggleAppsDropdown}
-                className="flex items-center gap-1 text-left"
-              >
-                <div className="flex flex-col items-start min-w-0">
-                  <div className="flex items-center gap-1">
-                    <h3 className="text-sm font-medium text-foreground truncate">{currentApp.name}</h3>
-                    <ChevronDown 
-                      className={`h-4 w-4 transition-transform duration-200 flex-shrink-0 ${
-                        isAppsDropdownOpen ? 'rotate-180' : ''
-                      }`} 
-                    />
-                  </div>
+              <div className="flex flex-col items-start min-w-0">
+                <button
+                  onClick={toggleAppsDropdown}
+                  className="flex items-center gap-1 text-left"
+                >
+                  <h3 className="text-sm font-medium text-foreground truncate">{currentApp.name}</h3>
+                  <ChevronDown 
+                    className={`h-4 w-4 transition-transform duration-200 flex-shrink-0 ${
+                      isAppsDropdownOpen ? 'rotate-180' : ''
+                    }`} 
+                  />
+                </button>
+                <div className="flex items-center gap-1">
                   <p className="text-xs text-muted-foreground font-medium">
                     {compatibleCount} Capabilities
                   </p>
+                  <span className="text-xs text-muted-foreground">·</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsCollapsed(!isCollapsed)
+                    }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {isCollapsed ? 'Expand' : 'Collapse'}
+                  </button>
                 </div>
-              </button>
+              </div>
 
               {/* Custom dropdown */}
               {isAppsDropdownOpen && (
@@ -524,7 +535,8 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
         </div>
 
         {/* Capabilities list in the inner white card */}
-        <div className="ring-foreground/5 text-card-foreground rounded-lg bg-card border shadow border-transparent ring-1 p-2">
+        {!isCollapsed && (
+          <div className="ring-foreground/5 text-card-foreground rounded-lg bg-card border shadow border-transparent ring-1 p-2">
           {/* Search bar */}
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -658,6 +670,7 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
               })}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

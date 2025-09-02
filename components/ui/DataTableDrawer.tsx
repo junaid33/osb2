@@ -4,7 +4,7 @@ import * as DrawerPrimitives from "@radix-ui/react-dialog"
 import * as TabsPrimitives from "@radix-ui/react-tabs"
 import * as SelectPrimitives from "@radix-ui/react-select"
 import { RiCloseLine, RiExpandUpDownLine, RiCheckLine, RiArrowUpSLine, RiArrowDownSLine } from "@remixicon/react"
-import { Download, File, Trash2, CircleCheck, Github, Info, Folder, Lightbulb, ChevronDown, Nut, Search, X, Package } from "lucide-react"
+import { Download, File, Trash2, CircleCheck, Github, Info, Folder, Lightbulb, ChevronDown, ChevronLeft, ChevronRight, Nut, Search, X, Package } from "lucide-react"
 import React from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -403,7 +403,7 @@ function TremorTabsTrigger({ children, className, ...props }: { children: React.
         "data-[state=active]:dark:border-gray-50 data-[state=active]:dark:text-gray-50",
         "disabled:pointer-events-none",
         "disabled:text-gray-300 disabled:dark:text-gray-700",
-        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
+        "focus:outline-none focus:ring-0",
         className
       )}
       {...props}
@@ -416,7 +416,7 @@ function TremorTabsTrigger({ children, className, ...props }: { children: React.
 function TremorTabsContent({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) {
   return (
     <TabsPrimitives.Content
-      className={cn("outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900", className)}
+      className={cn("outline-none focus:ring-0", className)}
       {...props}
     >
       {children}
@@ -592,6 +592,7 @@ export function DataTableDrawer({
   const [loading, setLoading] = React.useState(false)
   const [selectedCapabilities, setSelectedCapabilities] = React.useState<SelectedCapability[]>([])
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
+  const [capabilityStackIndices, setCapabilityStackIndices] = React.useState<{[key: string]: number}>({})
 
   // Load pinned capabilities from localStorage on mount
   React.useEffect(() => {
@@ -722,6 +723,37 @@ export function DataTableDrawer({
     })
   }
 
+  // Group capabilities by name and create stacks
+  const groupedCapabilities = React.useMemo(() => {
+    const groups: {[key: string]: SelectedCapability[]} = {}
+    selectedCapabilities.forEach(capability => {
+      if (!groups[capability.name]) {
+        groups[capability.name] = []
+      }
+      groups[capability.name].push(capability)
+    })
+    return groups
+  }, [selectedCapabilities])
+
+  const navigateCapabilityStack = (capabilityName: string, direction: 'prev' | 'next') => {
+    const stack = groupedCapabilities[capabilityName]
+    if (!stack || stack.length <= 1) return
+
+    const currentIndex = capabilityStackIndices[capabilityName] || 0
+    let newIndex: number
+
+    if (direction === 'next') {
+      newIndex = (currentIndex + 1) % stack.length
+    } else {
+      newIndex = (currentIndex - 1 + stack.length) % stack.length
+    }
+
+    setCapabilityStackIndices(prev => ({
+      ...prev,
+      [capabilityName]: newIndex
+    }))
+  }
+
   const handleCopyPrompt = async () => {
     const prompt = "Select a starter, then add capabilities to generate a copy-ready AI prompt."
     try {
@@ -754,7 +786,7 @@ export function DataTableDrawer({
                 "border-border",
                 "bg-background",
                 "data-[state=closed]:animate-drawerSlideRightAndFade data-[state=open]:animate-drawerSlideLeftAndFade",
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                "focus:outline-none focus:ring-0"
               )}
             >
               {/* Header */}
@@ -868,7 +900,7 @@ export function DataTableDrawer({
 
                     {/* Build Stats Card */}
                     <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Open Source Applications</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Find Open Source Capabilities</p>
                       <BuildStatsCard 
                         onCapabilityPin={handleCapabilityPin}
                         onCapabilityUnpin={handleCapabilityRemove}
@@ -876,67 +908,125 @@ export function DataTableDrawer({
                       />
 
                       {/* Selected Capabilities */}
-                      {selectedCapabilities.length > 0 && (
+                      {Object.keys(groupedCapabilities).length > 0 && (
                         <div className="space-y-2">
-                          {selectedCapabilities.map((capability) => (
-                            <div key={capability.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted border p-3">
-                              <div className="flex items-center gap-3 flex-1">
-                                <div className="flex h-8 w-8 items-center justify-center">
-                                  {capability.toolIcon ? (
-                                    <ToolIcon
-                                      name={capability.toolName}
-                                      simpleIconSlug={capability.toolIcon}
-                                      simpleIconColor={capability.toolColor}
-                                      size={32}
-                                    />
-                                  ) : (
-                                    <div 
-                                      className="flex aspect-square items-center justify-center rounded-md overflow-hidden relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none"
-                                      style={{ 
-                                        width: 32, 
-                                        height: 32,
-                                        background: capability.toolColor || '#6B7280'
-                                      }}
-                                    >
-                                      {/* Noise texture overlay */}
-                                      <div
-                                        className="absolute inset-0 opacity-30"
-                                        style={{
-                                          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                                          backgroundSize: "256px 256px",
-                                        }}
-                                      />
-                                      
-                                      {/* Letter */}
-                                      <div className="absolute inset-0 flex items-center justify-center">
-                                        <span
-                                          className="font-silkscreen text-primary-foreground select-none"
-                                          style={{ fontSize: 16 }}
+                          {Object.entries(groupedCapabilities).map(([capabilityName, stack]) => {
+                            const currentIndex = capabilityStackIndices[capabilityName] || 0
+                            const currentCapability = stack[currentIndex]
+                            const hasMultiple = stack.length > 1
+
+                            return (
+                              <div key={capabilityName} className="relative">
+                                {/* Stack Effect - Background Cards */}
+                                {hasMultiple && (
+                                  <>
+                                    <div className="absolute inset-0 rounded-lg bg-muted border transform translate-x-2 translate-y-2 opacity-40" />
+                                    <div className="absolute inset-0 rounded-lg bg-muted border transform translate-x-1 translate-y-1 opacity-70" />
+                                  </>
+                                )}
+                                
+                                {/* Main Card */}
+                                <div className="relative flex items-center justify-between gap-3 rounded-lg bg-muted border p-3">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <div className="flex h-8 w-8 items-center justify-center">
+                                      {currentCapability.toolIcon ? (
+                                        <ToolIcon
+                                          name={currentCapability.toolName}
+                                          simpleIconSlug={currentCapability.toolIcon}
+                                          simpleIconColor={currentCapability.toolColor}
+                                          size={32}
+                                        />
+                                      ) : (
+                                        <div 
+                                          className="flex aspect-square items-center justify-center rounded-md overflow-hidden relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none"
+                                          style={{ 
+                                            width: 32, 
+                                            height: 32,
+                                            background: currentCapability.toolColor || '#6B7280'
+                                          }}
                                         >
-                                          {capability.toolName.charAt(0).toUpperCase()}
-                                        </span>
-                                      </div>
-                                      
-                                      {/* Subtle highlight */}
-                                      <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/10 to-transparent rounded-t-md" />
+                                          {/* Noise texture overlay */}
+                                          <div
+                                            className="absolute inset-0 opacity-30"
+                                            style={{
+                                              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                                              backgroundSize: "256px 256px",
+                                            }}
+                                          />
+                                          
+                                          {/* Letter */}
+                                          <div className="absolute inset-0 flex items-center justify-center">
+                                            <span
+                                              className="font-silkscreen text-primary-foreground select-none"
+                                              style={{ fontSize: 16 }}
+                                            >
+                                              {currentCapability.toolName.charAt(0).toUpperCase()}
+                                            </span>
+                                          </div>
+                                          
+                                          {/* Subtle highlight */}
+                                          <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/10 to-transparent rounded-t-md" />
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium">{capability.name}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    from {capability.toolName}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium">{currentCapability.name}</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        from {currentCapability.toolName}
+                                        {hasMultiple && (
+                                          <span className="ml-1">({currentIndex + 1}/{stack.length})</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Navigation and Remove */}
+                                  <div className="flex items-center gap-1">
+                                    {hasMultiple && (
+                                      <>
+                                        <Popover>
+                                          <PopoverTrigger asChild>
+                                            <button className="text-gray-400 hover:text-foreground transition-colors p-1 focus:outline-none focus:ring-0">
+                                              <Info className="h-4 w-4" />
+                                            </button>
+                                          </PopoverTrigger>
+                                          <PopoverContent side="top" className="w-64">
+                                            <div className="space-y-2">
+                                              <div className="flex items-center gap-2">
+                                                <Info className="h-3 w-3 text-muted-foreground" />
+                                                <span className="text-sm font-medium">Multiple Options</span>
+                                              </div>
+                                              <p className="text-sm text-muted-foreground">
+                                                You've selected the same capability from different apps. The AI will reference both implementations to provide better suggestions.
+                                              </p>
+                                            </div>
+                                          </PopoverContent>
+                                        </Popover>
+                                        <button
+                                          onClick={() => navigateCapabilityStack(capabilityName, 'prev')}
+                                          className="text-gray-400 hover:text-foreground transition-colors p-1 focus:outline-none focus:ring-0"
+                                        >
+                                          <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                          onClick={() => navigateCapabilityStack(capabilityName, 'next')}
+                                          className="text-gray-400 hover:text-foreground transition-colors p-1 focus:outline-none focus:ring-0"
+                                        >
+                                          <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                      </>
+                                    )}
+                                    <button
+                                      onClick={() => handleCapabilityRemove(currentCapability.id)}
+                                      className="text-gray-400 hover:text-red-500 transition-colors p-1 focus:outline-none focus:ring-0"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
                                   </div>
                                 </div>
                               </div>
-                              <button
-                                onClick={() => handleCapabilityRemove(capability.id)}
-                                className="text-gray-400 hover:text-red-500 transition-colors"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       )}
                     </div>
@@ -948,7 +1038,7 @@ export function DataTableDrawer({
                         <div className="hidden sm:flex items-center gap-2">
                           <Popover>
                             <PopoverTrigger asChild>
-                              <button className="hover:bg-muted rounded p-1 transition-colors" aria-label="In a nutshell">
+                              <button className="hover:bg-muted rounded p-1 transition-colors focus:outline-none focus:ring-0" aria-label="In a nutshell">
                                 <Lightbulb className="h-4 w-4 text-muted-foreground" />
                               </button>
                             </PopoverTrigger>
@@ -962,7 +1052,7 @@ export function DataTableDrawer({
                               </div>
                             </PopoverContent>
                           </Popover>
-                          <button className="hover:bg-muted rounded p-1 transition-colors" aria-label="Expand">
+                          <button className="hover:bg-muted rounded p-1 transition-colors focus:outline-none focus:ring-0" aria-label="Expand">
                             <ChevronDown className="h-4 w-4 text-muted-foreground" />
                           </button>
                         </div>
