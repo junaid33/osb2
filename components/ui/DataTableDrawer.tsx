@@ -17,6 +17,7 @@ import { LogoIcon as OpenshipIcon } from "@/components/OpenShipIcon"
 import { NextKeystoneIcon } from "@/components/NextKeystoneIcon"
 import { LogoIcon } from "@/features/dashboard/components/Logo"
 import ToolIcon from '@/components/ToolIcon'
+import BuildStatsCard from './BuildStatsCard'
 
 // GraphQL query for searching capabilities
 const SEARCH_CAPABILITIES_QUERY = `
@@ -692,6 +693,35 @@ export function DataTableDrawer({
     setSelectedCapabilities(prev => prev.filter(f => f.id !== capabilityId))
   }
 
+  const handleCapabilityPin = (capabilityImpl: any, app: any) => {
+    const compositeId = `${app.id}-${capabilityImpl.capability.id}`
+    const selectedCapability: SelectedCapability = {
+      id: compositeId,
+      capabilityId: capabilityImpl.capability.id,
+      toolId: app.id,
+      name: capabilityImpl.capability.name,
+      description: capabilityImpl.capability.description,
+      category: capabilityImpl.capability.category,
+      complexity: capabilityImpl.capability.complexity,
+      toolName: app.name,
+      toolIcon: app.simpleIconSlug,
+      toolColor: app.simpleIconColor,
+      toolRepo: app.repositoryUrl,
+      implementationNotes: capabilityImpl.implementationNotes,
+      githubPath: capabilityImpl.githubPath,
+      documentationUrl: capabilityImpl.documentationUrl
+    }
+
+    setSelectedCapabilities(prev => {
+      const isAlreadySelected = prev.some(f => f.id === compositeId)
+      if (isAlreadySelected) {
+        return prev.filter(f => f.id !== compositeId)
+      } else {
+        return [...prev, selectedCapability]
+      }
+    })
+  }
+
   const handleCopyPrompt = async () => {
     const prompt = "Select a starter, then add capabilities to generate a copy-ready AI prompt."
     try {
@@ -836,89 +866,14 @@ export function DataTableDrawer({
                       })()}
                     </div>
 
-
-                    {/* Capabilities Search */}
+                    {/* Build Stats Card */}
                     <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Capabilities</p>
-                      
-                      {/* Search Input */}
-                      <div className="relative">
-                        <TremorInput
-                          type="search"
-                          placeholder="Search for capabilities..."
-                          className=""
-                          value={search}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-                          onFocus={() => setIsSearchOpen(true)}
-                        />
-                      </div>
-
-                      {/* Search Results */}
-                      {isSearchOpen && search.trim() && (
-                        <div className="max-h-64 overflow-y-auto border border-border rounded-md bg-background">
-                          {loading ? (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              Searching...
-                            </div>
-                          ) : results && results.openSourceApplications.length > 0 ? (
-                            <div className="p-2">
-                              {results.openSourceApplications.map((tool) => (
-                                <div key={tool.id} className="mb-3">
-                                  <div className="mb-2 px-2 text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                    {tool.simpleIconSlug ? (
-                                      <ToolIcon
-                                        name={tool.name}
-                                        simpleIconSlug={tool.simpleIconSlug}
-                                        simpleIconColor={tool.simpleIconColor}
-                                        size={16}
-                                      />
-                                    ) : (
-                                      <Package className="h-4 w-4 text-gray-500" />
-                                    )}
-                                    {tool.name}
-                                  </div>
-                                  {tool.capabilities.map((capability) => {
-                                    const isSelected = selectedCapabilities.some(f => f.id === `${tool.id}-${capability.capability.id}`)
-                                    return (
-                                      <button
-                                        key={`${tool.id}-${capability.capability.id}`}
-                                        onClick={() => handleCapabilitySelect(
-                                          capability, 
-                                          tool.id, 
-                                          tool.name, 
-                                          tool.simpleIconSlug, 
-                                          tool.simpleIconColor, 
-                                          tool.repositoryUrl
-                                        )}
-                                        className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                                      >
-                                        <div className="flex h-6 w-6 items-center justify-center">
-                                          <CircleCheck className={`h-4 w-4 ${isSelected ? 'text-blue-500' : 'text-muted-foreground opacity-50'}`} />
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                          <div className="font-medium">{capability.capability.name}</div>
-                                          {capability.capability.description && (
-                                            <div className="truncate text-xs text-gray-500 dark:text-gray-400">
-                                              {capability.capability.description}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                                          {capability.capability.complexity}
-                                        </div>
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              No capabilities found for "{search}"
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Open Source Applications</p>
+                      <BuildStatsCard 
+                        onCapabilityPin={handleCapabilityPin}
+                        onCapabilityUnpin={handleCapabilityRemove}
+                        selectedCapabilities={new Set(selectedCapabilities.map(cap => cap.id))}
+                      />
 
                       {/* Selected Capabilities */}
                       {selectedCapabilities.length > 0 && (
