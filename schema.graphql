@@ -479,9 +479,6 @@ type OpenSourceApplication {
   status: String
   capabilities(where: OpenSourceCapabilityWhereInput! = {}, orderBy: [OpenSourceCapabilityOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OpenSourceCapabilityWhereUniqueInput): [OpenSourceCapability!]
   capabilitiesCount(where: OpenSourceCapabilityWhereInput! = {}): Int
-  matchingCapabilitiesCount: Int
-  totalCapabilitiesCount: Int
-  capabilityPercentage: Int
   createdAt: DateTime
   updatedAt: DateTime
 }

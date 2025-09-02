@@ -21,20 +21,38 @@ export function HeroSection({ proprietaryApp }: HeroSectionProps) {
             size={64}
           />
         </div>
-        <h2 className="text-xl text-muted-foreground font-light mb-1">
-          Open Source Alternatives to
-        </h2>
-        <h1 className="text-5xl md:text-6xl font-bold text-foreground flex items-baseline gap-2 mb-2">
-          {proprietaryApp.name}
-          <ProprietaryAppsDropdown 
-            currentSlug={proprietaryApp.slug}
-            currentName={proprietaryApp.name}
-            iconColor={proprietaryApp.simpleIconColor}
-          />
+        <h1 className="text-5xl md:text-6xl font-bold mb-6 tracking-tight">
+          Open source
+          <br />
+          alternatives to
+          <br />
+          <div className="flex items-baseline gap-2">
+            <span className="font-geist-sans font-semibold text-muted-foreground">
+              {proprietaryApp.name}
+            </span>
+            <div className="text-base tracking-normal">
+              <ProprietaryAppsDropdown 
+                currentSlug={proprietaryApp.slug}
+                currentName={proprietaryApp.name}
+                iconColor={proprietaryApp.simpleIconColor}
+              />
+            </div>
+          </div>
         </h1>
-        <div className="flex items-center text-muted-foreground mb-6">
-          <Clock className="h-4 w-4 mr-2" />
-          <span className="text-sm">{proprietaryApp.websiteUrl || 'website.com'}</span>
+        <div className="flex items-center mb-6">
+          <a
+            href={proprietaryApp.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/80 text-sm text-white font-medium hover:bg-black/90 transition-colors cursor-pointer"
+          >
+            <Clock className="h-4 w-4 opacity-60" />
+            <span className="opacity-60">
+              {proprietaryApp.websiteUrl 
+                ? proprietaryApp.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
+                : 'website.com'}
+            </span>
+          </a>
         </div>
         {/* <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <Input

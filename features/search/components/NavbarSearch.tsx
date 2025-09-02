@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Wrench, Package, ExternalLink } from 'lucide-react'
+import { Search, Package, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { request } from 'graphql-request'
@@ -151,16 +151,12 @@ export function NavbarSearch() {
                       className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
                     >
                       <div className="flex h-8 w-8 items-center justify-center">
-                        {app.simpleIconSlug ? (
-                          <ToolIcon
-                            name={app.name}
-                            simpleIconSlug={app.simpleIconSlug}
-                            simpleIconColor={app.simpleIconColor}
-                            size={24}
-                          />
-                        ) : (
-                          <Wrench className="h-5 w-5 text-muted-foreground" />
-                        )}
+                        <ToolIcon
+                          name={app.name}
+                          simpleIconSlug={app.simpleIconSlug}
+                          simpleIconColor={app.simpleIconColor}
+                          size={24}
+                        />
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className="font-medium">{app.name}</div>
@@ -191,16 +187,12 @@ export function NavbarSearch() {
                       className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
                     >
                       <div className="flex h-8 w-8 items-center justify-center">
-                        {app.simpleIconSlug ? (
-                          <ToolIcon
-                            name={app.name}
-                            simpleIconSlug={app.simpleIconSlug}
-                            simpleIconColor={app.simpleIconColor}
-                            size={24}
-                          />
-                        ) : (
-                          <Package className="h-5 w-5 text-muted-foreground" />
-                        )}
+                        <ToolIcon
+                          name={app.name}
+                          simpleIconSlug={app.simpleIconSlug}
+                          simpleIconColor={app.simpleIconColor}
+                          size={24}
+                        />
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className="font-medium">{app.name}</div>

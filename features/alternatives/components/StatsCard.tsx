@@ -1,24 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { Cell, Pie, PieChart } from "recharts";
 import { ChevronLeft, ChevronRight, Pin, Search, ChevronDown } from "lucide-react";
+import debounce from 'lodash.debounce';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface Capability {
   id: string;
@@ -139,6 +133,55 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
   const [pinnedCapabilities, setPinnedCapabilities] = useState<Set<string>>(new Set());
   const [hoveredCapability, setHoveredCapability] = useState<string | null>(null);
   const [capabilitySearch, setCapabilitySearch] = useState('');
+  const [isAlternativesDropdownOpen, setIsAlternativesDropdownOpen] = useState(false);
+  const [alternativeSearchTerm, setAlternativeSearchTerm] = useState('');
+  const [filteredAlternatives, setFilteredAlternatives] = useState<OpenSourceAlternative[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const alternativeSearchRef = useRef<HTMLInputElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsAlternativesDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Close dropdown on escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsAlternativesDropdownOpen(false)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
+
+  // Debounced search for alternatives
+  const performAlternativeSearch = useCallback(
+    debounce((search: string, allAlternatives: OpenSourceAlternative[]) => {
+      if (!search.trim()) {
+        setFilteredAlternatives(allAlternatives)
+        return
+      }
+
+      const filtered = allAlternatives.filter(alt => 
+        alt.name.toLowerCase().includes(search.toLowerCase())
+      )
+      
+      setFilteredAlternatives(filtered)
+    }, 300),
+    []
+  )
+
+  // Update filtered alternatives when search term or alternatives change
+  useEffect(() => {
+    performAlternativeSearch(alternativeSearchTerm, openSourceAlternatives)
+  }, [alternativeSearchTerm, openSourceAlternatives, performAlternativeSearch])
   
   // If no alternatives, show fallback
   if (openSourceAlternatives.length === 0) {
@@ -188,16 +231,36 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
   const totalCount = capabilityData.length;
   const compatibilityScore = Math.round((compatibleCount / totalCount) * 100);
 
-  const nextAlternative = () => {
-    setCurrentAlternativeIndex((prev) => (prev + 1) % openSourceAlternatives.length);
+  const handleAlternativeChange = (newIndex: number) => {
+    setCurrentAlternativeIndex(newIndex);
     setPinnedCapabilities(new Set()); // Reset pins when switching alternatives
     setHoveredCapability(null); // Reset hover when switching
+    setIsAlternativesDropdownOpen(false);
+    setAlternativeSearchTerm('');
+  };
+
+  const nextAlternative = () => {
+    const newIndex = (currentAlternativeIndex + 1) % openSourceAlternatives.length;
+    handleAlternativeChange(newIndex);
   };
 
   const prevAlternative = () => {
-    setCurrentAlternativeIndex((prev) => (prev - 1 + openSourceAlternatives.length) % openSourceAlternatives.length);
-    setPinnedCapabilities(new Set()); // Reset pins when switching alternatives
-    setHoveredCapability(null); // Reset hover when switching
+    const newIndex = (currentAlternativeIndex - 1 + openSourceAlternatives.length) % openSourceAlternatives.length;
+    handleAlternativeChange(newIndex);
+  };
+
+  const toggleAlternativesDropdown = () => {
+    const newIsOpen = !isAlternativesDropdownOpen;
+    setIsAlternativesDropdownOpen(newIsOpen);
+    
+    // Focus search input when dropdown opens
+    if (newIsOpen) {
+      setTimeout(() => {
+        alternativeSearchRef.current?.focus();
+      }, 0);
+    } else {
+      setAlternativeSearchTerm('');
+    }
   };
 
   const togglePin = (capabilityName: string) => {
@@ -260,12 +323,12 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
   };
 
   return (
-    <div className="group relative p-1 rounded-xl overflow-hidden transition-all duration-300 bg-muted border border-border ring-2 ring-border/50 hover:shadow-lg">
+    <div className="group relative p-1 rounded-xl transition-all duration-300 bg-muted border border-border ring-2 ring-border/50 hover:shadow-lg">
       <div className="relative flex flex-col space-y-2">
         {/* Header in the outer gray card */}
         <div className="flex items-center justify-between px-3 py-2">
           {/* Left side: Logo and capabilities info */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0" ref={dropdownRef}>
             {currentAlternative.simpleIconSlug ? (
               <div 
                 className="w-8 h-8 flex-shrink-0 rounded flex items-center justify-center"
@@ -286,48 +349,106 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
                 {currentAlternative.name.charAt(0).toUpperCase()}
               </div>
             )}
-            <Select value={currentAlternativeIndex.toString()} onValueChange={(value) => setCurrentAlternativeIndex(parseInt(value))}>
-              <SelectTrigger className="border-0 shadow-none p-0 h-auto bg-transparent hover:bg-transparent focus:ring-0 gap-1">
-                <div className="flex flex-col items-start">
-                  <h3 className="text-sm font-medium text-foreground">{currentAlternative.name}</h3>
+            
+            {/* Custom dropdown trigger */}
+            <div className="relative flex-1 min-w-0">
+              <button
+                onClick={toggleAlternativesDropdown}
+                className="flex items-center gap-1 text-left"
+              >
+                <div className="flex flex-col items-start min-w-0">
+                  <div className="flex items-center gap-1">
+                    <h3 className="text-sm font-medium text-foreground truncate">{currentAlternative.name}</h3>
+                    <ChevronDown 
+                      className={`h-4 w-4 transition-transform duration-200 flex-shrink-0 ${
+                        isAlternativesDropdownOpen ? 'rotate-180' : ''
+                      }`} 
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground font-medium">
                     {compatibleCount} Capabilities
                   </p>
                 </div>
-              </SelectTrigger>
-              <SelectContent>
-                {openSourceAlternatives.map((alt, index) => (
-                  <SelectItem key={alt.id} value={index.toString()}>
-                    <div className="flex items-center gap-3">
-                      {alt.simpleIconSlug ? (
-                        <div 
-                          className="w-6 h-6 rounded-md flex items-center justify-center"
-                          style={{ backgroundColor: alt.simpleIconColor || '#6B7280' }}
-                        >
-                          <img
-                            src={`https://cdn.jsdelivr.net/npm/simple-icons@v15/icons/${alt.simpleIconSlug}.svg`}
-                            alt={`${alt.name} icon`}
-                            className="w-4 h-4"
-                            style={{ filter: 'brightness(0) invert(1)' }}
-                          />
-                        </div>
+              </button>
+
+              {/* Custom dropdown */}
+              {isAlternativesDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-80 max-h-96 rounded-lg border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75 shadow-lg z-50">
+                  <div className="p-2">
+                    <div className="mb-2 px-2 text-xs font-semibold text-muted-foreground">
+                      Switch to other open source app
+                    </div>
+                    
+                    {/* Search Input */}
+                    <div className="relative mb-3">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        ref={alternativeSearchRef}
+                        type="search"
+                        placeholder="Search open source apps..."
+                        className="h-9 w-full pl-9 pr-3 text-sm"
+                        value={alternativeSearchTerm}
+                        onChange={(e) => setAlternativeSearchTerm(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Results */}
+                    <div className="max-h-64 overflow-auto">
+                      {filteredAlternatives.length > 0 ? (
+                        filteredAlternatives.map((alt, index) => {
+                          const originalIndex = openSourceAlternatives.findIndex(a => a.id === alt.id);
+                          return (
+                            <button
+                              key={alt.id}
+                              onClick={() => handleAlternativeChange(originalIndex)}
+                              className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent ${
+                                originalIndex === currentAlternativeIndex ? 'bg-accent' : ''
+                              }`}
+                            >
+                              <div className="flex h-8 w-8 items-center justify-center">
+                                {alt.simpleIconSlug ? (
+                                  <div 
+                                    className="w-6 h-6 rounded-md flex items-center justify-center"
+                                    style={{ backgroundColor: alt.simpleIconColor || '#6B7280' }}
+                                  >
+                                    <img
+                                      src={`https://cdn.jsdelivr.net/npm/simple-icons@v15/icons/${alt.simpleIconSlug}.svg`}
+                                      alt={`${alt.name} icon`}
+                                      className="w-4 h-4"
+                                      style={{ filter: 'brightness(0) invert(1)' }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div 
+                                    className="w-6 h-6 rounded-md flex items-center justify-center text-white font-bold text-xs"
+                                    style={{ backgroundColor: alt.simpleIconColor || '#6B7280' }}
+                                  >
+                                    {alt.name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 overflow-hidden">
+                                <div className="font-medium">{alt.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {alt.capabilities?.length || 0} capabilities
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })
                       ) : (
-                        <div 
-                          className="w-6 h-6 rounded-md flex items-center justify-center text-white font-bold text-xs"
-                          style={{ backgroundColor: alt.simpleIconColor || '#6B7280' }}
-                        >
-                          {alt.name.charAt(0).toUpperCase()}
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          {alternativeSearchTerm.trim() 
+                            ? `No results found for "${alternativeSearchTerm}"` 
+                            : "No alternatives available"
+                          }
                         </div>
                       )}
-                      <div>
-                        <div className="font-medium text-sm">{alt.name}</div>
-                        <div className="text-xs text-muted-foreground">{alt.capabilities?.length || 0} Capabilities</div>
-                      </div>
                     </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Right side: Navigation and donut */}

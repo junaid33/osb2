@@ -30,7 +30,7 @@ export const MULTI_MODEL_SEARCH = gql`
           { name: { contains: $search, mode: insensitive } }
           { slug: { contains: $search, mode: insensitive } }
           { description: { contains: $search, mode: insensitive } }
-          { capabilities: { some: { name: { contains: $search, mode: insensitive } } } }
+          { capabilities: { some: { capability: { name: { contains: $search, mode: insensitive } } } } }
         ]
       }
       take: 5

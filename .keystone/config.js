@@ -26,7 +26,7 @@ module.exports = __toCommonJS(keystone_exports);
 
 // features/keystone/index.ts
 var import_auth = require("@keystone-6/auth");
-var import_core10 = require("@keystone-6/core");
+var import_core9 = require("@keystone-6/core");
 var import_config = require("dotenv/config");
 
 // features/keystone/models/User.ts
@@ -317,7 +317,6 @@ var ProprietaryApplication = (0, import_core4.list)({
 // features/keystone/models/OpenSourceApplication.ts
 var import_core5 = require("@keystone-6/core");
 var import_fields5 = require("@keystone-6/core/fields");
-var import_core6 = require("@keystone-6/core");
 var OpenSourceApplication = (0, import_core5.list)({
   access: {
     operation: {
@@ -421,83 +420,6 @@ var OpenSourceApplication = (0, import_core5.list)({
       ref: "OpenSourceCapability.openSourceApplication",
       many: true
     }),
-    // VIRTUAL FIELDS - Homepage percentage calculation
-    matchingCapabilitiesCount: (0, import_fields5.virtual)({
-      field: import_core6.graphql.field({
-        type: import_core6.graphql.Int,
-        resolve: async (item, args, context) => {
-          const openSourceApp = await context.query.OpenSourceApplication.findOne({
-            where: { id: item.id },
-            query: {
-              capabilities: {
-                where: { isActive: { equals: true } },
-                query: { capability: { id: true } }
-              },
-              primaryAlternativeTo: {
-                capabilities: {
-                  where: { isActive: { equals: true } },
-                  query: { capability: { id: true } }
-                }
-              }
-            }
-          });
-          if (!openSourceApp?.primaryAlternativeTo) return 0;
-          const proprietaryCapIds = openSourceApp.primaryAlternativeTo.capabilities.map((c) => c.capability.id);
-          const matchingCount = openSourceApp.capabilities.filter(
-            (osc) => proprietaryCapIds.includes(osc.capability.id)
-          ).length;
-          return matchingCount;
-        }
-      })
-    }),
-    totalCapabilitiesCount: (0, import_fields5.virtual)({
-      field: import_core6.graphql.field({
-        type: import_core6.graphql.Int,
-        resolve: async (item, args, context) => {
-          const openSourceApp = await context.query.OpenSourceApplication.findOne({
-            where: { id: item.id },
-            query: {
-              primaryAlternativeTo: {
-                capabilities: {
-                  where: { isActive: { equals: true } },
-                  query: { id: true }
-                }
-              }
-            }
-          });
-          return openSourceApp?.primaryAlternativeTo?.capabilities.length || 0;
-        }
-      })
-    }),
-    capabilityPercentage: (0, import_fields5.virtual)({
-      field: import_core6.graphql.field({
-        type: import_core6.graphql.Int,
-        resolve: async (item, args, context) => {
-          const app = await context.query.OpenSourceApplication.findOne({
-            where: { id: item.id },
-            query: {
-              capabilities: {
-                where: { isActive: { equals: true } },
-                query: { capability: { id: true } }
-              },
-              primaryAlternativeTo: {
-                capabilities: {
-                  where: { isActive: { equals: true } },
-                  query: { capability: { id: true } }
-                }
-              }
-            }
-          });
-          if (!app?.primaryAlternativeTo) return 0;
-          const proprietaryCapIds = app.primaryAlternativeTo.capabilities.map((c) => c.capability.id);
-          const matchingCount = app.capabilities.filter(
-            (osc) => proprietaryCapIds.includes(osc.capability.id)
-          ).length;
-          const totalCount = app.primaryAlternativeTo.capabilities.length;
-          return totalCount > 0 ? Math.round(matchingCount / totalCount * 100) : 0;
-        }
-      })
-    }),
     createdAt: (0, import_fields5.timestamp)({
       defaultValue: { kind: "now" }
     }),
@@ -511,9 +433,9 @@ var OpenSourceApplication = (0, import_core5.list)({
 });
 
 // features/keystone/models/Capability.ts
-var import_core7 = require("@keystone-6/core");
+var import_core6 = require("@keystone-6/core");
 var import_fields6 = require("@keystone-6/core/fields");
-var Capability = (0, import_core7.list)({
+var Capability = (0, import_core6.list)({
   access: {
     operation: {
       query: () => true,
@@ -605,9 +527,9 @@ var Capability = (0, import_core7.list)({
 });
 
 // features/keystone/models/ProprietaryCapability.ts
-var import_core8 = require("@keystone-6/core");
+var import_core7 = require("@keystone-6/core");
 var import_fields7 = require("@keystone-6/core/fields");
-var ProprietaryCapability = (0, import_core8.list)({
+var ProprietaryCapability = (0, import_core7.list)({
   access: {
     operation: {
       query: () => true,
@@ -654,9 +576,9 @@ var ProprietaryCapability = (0, import_core8.list)({
 });
 
 // features/keystone/models/OpenSourceCapability.ts
-var import_core9 = require("@keystone-6/core");
+var import_core8 = require("@keystone-6/core");
 var import_fields8 = require("@keystone-6/core/fields");
-var OpenSourceCapability = (0, import_core9.list)({
+var OpenSourceCapability = (0, import_core8.list)({
   access: {
     operation: {
       query: () => true,
@@ -775,10 +697,10 @@ async function redirectToInit(root, { ids }, context) {
 var redirectToInit_default = redirectToInit;
 
 // features/keystone/mutations/index.ts
-var graphql2 = String.raw;
+var graphql = String.raw;
 var extendGraphqlSchema = (schema) => (0, import_schema.mergeSchemas)({
   schemas: [schema],
-  typeDefs: graphql2`
+  typeDefs: graphql`
       type Query {
         redirectToInit: Boolean
       }
@@ -908,7 +830,7 @@ var { withAuth } = (0, import_auth.createAuth)({
   `
 });
 var keystone_default = withAuth(
-  (0, import_core10.config)({
+  (0, import_core9.config)({
     db: {
       provider: "postgresql",
       url: databaseURL
