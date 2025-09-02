@@ -33,6 +33,16 @@ export interface OpenSourceAlternative {
   license?: string
   websiteUrl?: string
   repositoryUrl?: string
+  simpleIconSlug?: string
+  simpleIconColor?: string
+  capabilities: Array<{
+    capability: Capability
+    implementationNotes?: string
+    githubPath?: string
+    documentationUrl?: string
+    implementationComplexity?: string
+    isActive?: boolean
+  }>
 }
 
 interface GetAlternativesResponse {
@@ -75,6 +85,23 @@ export async function getAlternatives(slug: string): Promise<GetAlternativesResp
           license
           websiteUrl
           repositoryUrl
+          simpleIconSlug
+          simpleIconColor
+          capabilities {
+            capability {
+              id
+              name
+              slug
+              description
+              category
+              complexity
+            }
+            implementationNotes
+            githubPath
+            documentationUrl
+            implementationComplexity
+            isActive
+          }
         }
       }
     }
@@ -109,14 +136,22 @@ export async function getAlternatives(slug: string): Promise<GetAlternativesResp
       websiteUrl: proprietaryApps[0].websiteUrl,
       simpleIconSlug: proprietaryApps[0].simpleIconSlug,
       simpleIconColor: proprietaryApps[0].simpleIconColor,
-      capabilities: proprietaryApps[0].capabilities?.map((pc: any) => ({
-        id: pc.capability.id,
-        name: pc.capability.name,
-        slug: pc.capability.slug,
-        description: pc.capability.description || '',
-        category: pc.capability.category,
-        complexity: pc.capability.complexity
-      })) || [],
+      capabilities: (() => {
+        const capabilityMap = new Map()
+        proprietaryApps[0].capabilities?.forEach((pc: any) => {
+          const capability = {
+            id: pc.capability.id,
+            name: pc.capability.name,
+            slug: pc.capability.slug,
+            description: pc.capability.description || '',
+            category: pc.capability.category,
+            complexity: pc.capability.complexity
+          }
+          // Use capability ID as key to deduplicate
+          capabilityMap.set(capability.id, capability)
+        })
+        return Array.from(capabilityMap.values())
+      })(),
       openSourceAlternatives: proprietaryApps[0].openSourceAlternatives.map((alt: any) => ({
         id: alt.id,
         name: alt.name,
@@ -126,7 +161,24 @@ export async function getAlternatives(slug: string): Promise<GetAlternativesResp
         githubForks: alt.githubForks || 0,
         license: alt.license,
         websiteUrl: alt.websiteUrl,
-        repositoryUrl: alt.repositoryUrl
+        repositoryUrl: alt.repositoryUrl,
+        simpleIconSlug: alt.simpleIconSlug,
+        simpleIconColor: alt.simpleIconColor,
+        capabilities: alt.capabilities?.map((c: any) => ({
+          capability: {
+            id: c.capability.id,
+            name: c.capability.name,
+            slug: c.capability.slug,
+            description: c.capability.description || '',
+            category: c.capability.category,
+            complexity: c.capability.complexity
+          },
+          implementationNotes: c.implementationNotes,
+          githubPath: c.githubPath,
+          documentationUrl: c.documentationUrl,
+          implementationComplexity: c.implementationComplexity,
+          isActive: c.isActive
+        })) || []
       }))
     }
 

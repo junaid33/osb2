@@ -2,12 +2,13 @@ import { gql } from 'graphql-request'
 
 export const MULTI_MODEL_SEARCH = gql`
   query MultiModelSearch($search: String!) {
-    tools(
+    openSourceApplications(
       where: {
         OR: [
           { name: { contains: $search, mode: insensitive } }
           { slug: { contains: $search, mode: insensitive } }
           { description: { contains: $search, mode: insensitive } }
+          { capabilities: { some: { capability: { name: { contains: $search, mode: insensitive } } } } }
         ]
       }
       take: 5
@@ -17,12 +18,34 @@ export const MULTI_MODEL_SEARCH = gql`
       name
       slug
       description
-      isOpenSource
       simpleIconSlug
       simpleIconColor
+      repositoryUrl
+      websiteUrl
     }
     
-    features(
+    proprietaryApplications(
+      where: {
+        OR: [
+          { name: { contains: $search, mode: insensitive } }
+          { slug: { contains: $search, mode: insensitive } }
+          { description: { contains: $search, mode: insensitive } }
+          { capabilities: { some: { name: { contains: $search, mode: insensitive } } } }
+        ]
+      }
+      take: 5
+      orderBy: { name: asc }
+    ) {
+      id
+      name
+      slug
+      description
+      simpleIconSlug
+      simpleIconColor
+      websiteUrl
+    }
+    
+    capabilities(
       where: {
         OR: [
           { name: { contains: $search, mode: insensitive } }
@@ -37,93 +60,38 @@ export const MULTI_MODEL_SEARCH = gql`
       name
       slug
       description
-      featureType
-    }
-    
-    alternatives(
-      where: {
-        OR: [
-          { comparisonNotes: { contains: $search, mode: insensitive } }
-          { proprietaryTool: { 
-            OR: [
-              { name: { contains: $search, mode: insensitive } }
-              { slug: { contains: $search, mode: insensitive } }
-            ]
-          }}
-          { openSourceTool: { 
-            OR: [
-              { name: { contains: $search, mode: insensitive } }
-              { slug: { contains: $search, mode: insensitive } }
-            ]
-          }}
-        ]
-      }
-      take: 5
-      orderBy: { similarityScore: desc }
-    ) {
-      id
-      comparisonNotes
-      similarityScore
-      proprietaryTool {
-        id
-        name
-        slug
-        simpleIconSlug
-        simpleIconColor
-        websiteUrl
-      }
-      openSourceTool {
-        id
-        name
-        slug
-        description
-        simpleIconSlug
-        simpleIconColor
-        websiteUrl
-        repositoryUrl
-      }
+      category
+      complexity
     }
   }
 `
 
 export interface SearchResult {
-  tools: {
+  openSourceApplications: {
     id: string
     name: string
     slug: string
     description?: string
-    isOpenSource: boolean
     simpleIconSlug?: string
     simpleIconColor?: string
+    repositoryUrl?: string
+    websiteUrl?: string
   }[]
-  features: {
+  proprietaryApplications: {
     id: string
     name: string
     slug: string
     description?: string
-    featureType?: string
+    simpleIconSlug?: string
+    simpleIconColor?: string
+    websiteUrl?: string
   }[]
-  alternatives: {
+  capabilities: {
     id: string
-    comparisonNotes?: string
-    similarityScore?: number
-    proprietaryTool: {
-      id: string
-      name: string
-      slug: string
-      simpleIconSlug?: string
-      simpleIconColor?: string
-      websiteUrl?: string
-    } | null
-    openSourceTool: {
-      id: string
-      name: string
-      slug: string
-      description?: string
-      simpleIconSlug?: string
-      simpleIconColor?: string
-      websiteUrl?: string
-      repositoryUrl?: string
-    } | null
+    name: string
+    slug: string
+    description?: string
+    category?: string
+    complexity?: string
   }[]
 }

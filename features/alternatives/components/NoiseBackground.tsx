@@ -1,4 +1,7 @@
-import React from 'react'
+'use client';
+
+import React, { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 
 interface NoiseBackgroundProps {
   className?: string;
@@ -9,6 +12,15 @@ const NoiseBackground: React.FC<NoiseBackgroundProps> = ({
   className = "",
   color = "#10b981", // Default green
 }) => {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Use a safe fallback during hydration
+  const isDark = mounted ? resolvedTheme === 'dark' : false;
   // Convert hex to HSL for better color variations
   const hexToHsl = (hex: string) => {
     // Remove # if present
@@ -92,7 +104,7 @@ const NoiseBackground: React.FC<NoiseBackgroundProps> = ({
             <stop offset="0%" stopColor={colors.primary} stopOpacity="0.4" />
             <stop offset="25%" stopColor={colors.secondary} stopOpacity="0.2" />
             <stop offset="50%" stopColor={colors.tertiary} stopOpacity="0.1" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+            <stop offset="100%" stopColor={isDark ? "#000000" : "#ffffff"} stopOpacity="0" />
           </radialGradient>
           <linearGradient id="themeLines" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={colors.accent} stopOpacity="0" />
@@ -100,7 +112,7 @@ const NoiseBackground: React.FC<NoiseBackgroundProps> = ({
             <stop offset="100%" stopColor={colors.accent} stopOpacity="0" />
           </linearGradient>
         </defs>
-        <rect width="100%" height="100%" fill="#000000" />
+        <rect width="100%" height="100%" fill={isDark ? "#000000" : "#ffffff"} />
         <rect
           width="100%"
           height="100%"

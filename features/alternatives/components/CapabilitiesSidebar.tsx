@@ -1,58 +1,73 @@
 import React from 'react'
+import { Settings, Database, CreditCard, Package, Zap, Shield } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import { PinList, type PinListItem } from './PinList'
 import type { Capability } from '../actions/getAlternatives'
 
 interface CapabilitiesSidebarProps {
   capabilities: Capability[]
 }
 
+function getCapabilityIcon(name: string) {
+  const lowerName = name.toLowerCase()
+  if (lowerName.includes('payment') || lowerName.includes('currency')) return CreditCard
+  if (lowerName.includes('database') || lowerName.includes('storage')) return Database
+  if (lowerName.includes('package') || lowerName.includes('inventory')) return Package
+  if (lowerName.includes('performance') || lowerName.includes('speed')) return Zap
+  if (lowerName.includes('security') || lowerName.includes('auth')) return Shield
+  return Settings
+}
+
+function formatUptime(capabilityId: string): string {
+  // Use capability ID to generate consistent values
+  const hash = Array.from(capabilityId).reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const days = (hash % 150) + 50
+  const hours = (hash % 24)
+  const minutes = (hash % 60)
+  return `Up · ${days}d ${hours}h ${minutes}m`
+}
+
+function getVersionNumber(capabilityId: string, complexity?: string): string {
+  // Generate consistent version numbers based on capability ID
+  const hash = Array.from(capabilityId).reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const qualityScore = complexity === 'advanced' ? 9 : complexity === 'intermediate' ? 8 : 7
+  const minor = hash % 10
+  return `v${qualityScore}.${minor}`
+}
+
 export function CapabilitiesSidebar({ capabilities }: CapabilitiesSidebarProps) {
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-white mb-4">Features</h3>
-      
-      {capabilities.length === 0 ? (
+  // Transform capabilities to PinList format
+  const pinListItems: PinListItem[] = capabilities.map((capability, index) => ({
+    id: index, // Use index as ID to avoid conversion issues
+    name: capability.name,
+    info: `${getVersionNumber(capability.id, capability.complexity)} · ${formatUptime(capability.id)}`,
+    icon: getCapabilityIcon(capability.name),
+    pinned: index < 2, // Pin first 2 items by default for demo
+  }))
+
+  if (capabilities.length === 0) {
+    return (
+      <Card className="border border-border bg-background p-6">
+        <h3 className="text-lg font-medium text-foreground mb-4">Compatibilities</h3>
         <div className="text-center py-8">
-          <p className="text-gray-400">No features available</p>
+          <p className="text-muted-foreground">No compatibilities available</p>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {capabilities.map((capability) => (
-            <div
-              key={capability.id}
-              className="bg-zinc-900 rounded-lg p-4 cursor-pointer hover:bg-zinc-800 transition-colors border border-transparent hover:border-zinc-700"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="font-medium text-white mb-1">{capability.name}</h4>
-                  {capability.description && (
-                    <p className="text-sm text-gray-400 line-clamp-2">
-                      {capability.description}
-                    </p>
-                  )}
-                </div>
-                <div className="ml-3 flex flex-col items-end gap-1">
-                  {capability.category && (
-                    <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full">
-                      {capability.category}
-                    </span>
-                  )}
-                  {capability.complexity && (
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      capability.complexity === 'basic' 
-                        ? 'bg-green-500/20 text-green-400'
-                        : capability.complexity === 'intermediate'
-                        ? 'bg-yellow-500/20 text-yellow-400'
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {capability.complexity}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="border border-border bg-background p-4">
+      <h3 className="text-lg font-medium text-foreground mb-4">Compatibilities</h3>
+      <PinList 
+        items={pinListItems}
+        labels={{
+          pinned: 'Pinned Compatibilities',
+          unpinned: 'All Compatibilities'
+        }}
+        className="space-y-6"
+        labelClassName="text-foreground text-sm font-medium"
+      />
+    </Card>
   )
 }

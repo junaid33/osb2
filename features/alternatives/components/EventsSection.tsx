@@ -1,37 +1,17 @@
 import React from 'react'
-import { AlternativeCard } from './AlternativeCard'
-import { PlusCircle, Rss, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import type { OpenSourceAlternative } from '../actions/getAlternatives'
+import { DisplayCard } from './AlternativeCard'
+import type { OpenSourceAlternative, Capability } from '../actions/getAlternatives'
 
 interface EventsSectionProps {
   alternatives: OpenSourceAlternative[];
+  proprietaryCapabilities: Capability[];
 }
 
-export function EventsSection({ alternatives }: EventsSectionProps) {
+export function EventsSection({ alternatives, proprietaryCapabilities }: EventsSectionProps) {
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8">
         <h2 className="text-3xl font-bold">Open Source Alternatives</h2>
-        <div className="flex gap-2">
-          <Button className="ring-0"
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span>Submit Alternative</span>
-          </Button>
-          <Button
-            size="icon"
-            className="ring-0"
-          >
-            <Rss className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            className="ring-0"
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
       
       {alternatives.length === 0 ? (
@@ -41,19 +21,45 @@ export function EventsSection({ alternatives }: EventsSectionProps) {
         </div>
       ) : (
         <div className="space-y-6">
-          {alternatives.map((alternative) => (
-            <AlternativeCard
-              key={alternative.id}
-              name={alternative.name}
-              description={alternative.description}
-              githubStars={alternative.githubStars}
-              githubForks={alternative.githubForks}
-              license={alternative.license}
-              websiteUrl={alternative.websiteUrl}
-              repositoryUrl={alternative.repositoryUrl}
-              tags={[]} // Could add capability-based tags later
-            />
-          ))}
+          {alternatives.map((alternative) => {
+            // Calculate compatibility manually
+            const proprietaryCapIds = proprietaryCapabilities.map(c => c.id)
+            const matchingCapabilities = alternative.capabilities.filter(oc => 
+              proprietaryCapIds.includes(oc.capability.id)
+            )
+            const matchingCount = matchingCapabilities.length
+            const totalCount = proprietaryCapabilities.length
+            const compatibilityScore = totalCount > 0 ? Math.round((matchingCount / totalCount) * 100) : 0
+            
+            return (
+              <DisplayCard
+                key={alternative.id}
+                name={alternative.name}
+                description={alternative.description}
+                websiteUrl={alternative.websiteUrl}
+                repositoryUrl={alternative.repositoryUrl}
+                simpleIconSlug={alternative.simpleIconSlug}
+                simpleIconColor={alternative.simpleIconColor}
+                license={alternative.license}
+                githubStars={alternative.githubStars}
+                isOpenSource={true}
+                capabilities={proprietaryCapabilities.map(proprietary => {
+                  const openSourceHasThis = alternative.capabilities.find(oc => 
+                    oc.capability.id === proprietary.id
+                  )
+                  return {
+                    name: proprietary.name,
+                    compatible: !!openSourceHasThis,
+                    category: proprietary.category,
+                    complexity: proprietary.complexity
+                  }
+                })}
+                totalCapabilities={totalCount}
+                compatibilityScore={compatibilityScore}
+                alternatives={[]}
+              />
+            )
+          })}
         </div>
       )}
     </div>

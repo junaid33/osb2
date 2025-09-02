@@ -76,7 +76,7 @@ export function NavbarSearch() {
   }
 
   const handleToolClick = (slug: string) => {
-    router.push(`/tool/${slug}`)
+    router.push(`/alternatives/${slug}`)
     setIsOpen(false)
     setSearch('')
   }
@@ -98,7 +98,7 @@ export function NavbarSearch() {
       window.open(proprietaryTool.websiteUrl, '_blank')
     } else {
       // Fallback to internal tool page
-      router.push(`/tool/${proprietaryTool.slug}#alternatives`)
+      router.push(`/alternatives/${proprietaryTool.slug}`)
     }
     
     setIsOpen(false)
@@ -106,9 +106,9 @@ export function NavbarSearch() {
   }
 
   const hasResults = results && (
-    results.tools.length > 0 || 
-    results.features.length > 0 || 
-    results.alternatives.length > 0
+    results.openSourceApplications.length > 0 || 
+    results.proprietaryApplications.length > 0 || 
+    results.capabilities.length > 0
   )
 
   return (
@@ -118,7 +118,7 @@ export function NavbarSearch() {
         <Input
           ref={inputRef}
           type="search"
-          placeholder="Search tools, features, or alternatives..."
+          placeholder="Search open source tools, proprietary apps, or capabilities..."
           className={cn(
             "h-9 w-full pl-9 pr-3 text-sm bg-background",
             isOpen && hasResults && "rounded-b-none"
@@ -138,24 +138,24 @@ export function NavbarSearch() {
             </div>
           ) : hasResults ? (
             <div className="p-2">
-              {/* Tools Section */}
-              {results.tools.length > 0 && (
+              {/* Open Source Applications */}
+              {results.openSourceApplications.length > 0 && (
                 <div className="mb-2">
                   <div className="mb-1 px-2 text-xs font-semibold text-muted-foreground">
-                    Tools
+                    Open Source Applications
                   </div>
-                  {results.tools.map((tool) => (
+                  {results.openSourceApplications.map((app) => (
                     <button
-                      key={tool.id}
-                      onClick={() => handleToolClick(tool.slug)}
+                      key={app.id}
+                      onClick={() => handleToolClick(app.slug)}
                       className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
                     >
                       <div className="flex h-8 w-8 items-center justify-center">
-                        {tool.simpleIconSlug ? (
+                        {app.simpleIconSlug ? (
                           <ToolIcon
-                            name={tool.name}
-                            simpleIconSlug={tool.simpleIconSlug}
-                            simpleIconColor={tool.simpleIconColor}
+                            name={app.name}
+                            simpleIconSlug={app.simpleIconSlug}
+                            simpleIconColor={app.simpleIconColor}
                             size={24}
                           />
                         ) : (
@@ -163,145 +163,104 @@ export function NavbarSearch() {
                         )}
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <div className="font-medium">{tool.name}</div>
-                        {tool.description && (
+                        <div className="font-medium">{app.name}</div>
+                        {app.description && (
                           <div className="truncate text-xs text-muted-foreground">
-                            {tool.description}
+                            {app.description}
                           </div>
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {tool.isOpenSource ? 'Open Source' : 'Proprietary'}
+                        Open Source
                       </div>
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Features Section */}
-              {results.features.length > 0 && (
+              {/* Proprietary Applications */}
+              {results.proprietaryApplications.length > 0 && (
                 <div className="mb-2">
                   <div className="mb-1 px-2 text-xs font-semibold text-muted-foreground">
-                    Features
+                    Proprietary Applications
                   </div>
-                  {results.features.map((feature) => (
+                  {results.proprietaryApplications.map((app) => (
                     <button
-                      key={feature.id}
-                      onClick={() => handleFeatureClick(feature.slug)}
+                      key={app.id}
+                      onClick={() => handleToolClick(app.slug)}
+                      className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center">
+                        {app.simpleIconSlug ? (
+                          <ToolIcon
+                            name={app.name}
+                            simpleIconSlug={app.simpleIconSlug}
+                            simpleIconColor={app.simpleIconColor}
+                            size={24}
+                          />
+                        ) : (
+                          <Package className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="font-medium">{app.name}</div>
+                        {app.description && (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {app.description}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Proprietary
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Capabilities Section */}
+              {results.capabilities.length > 0 && (
+                <div className="mb-2">
+                  <div className="mb-1 px-2 text-xs font-semibold text-muted-foreground">
+                    Capabilities
+                  </div>
+                  {results.capabilities.map((capability) => (
+                    <button
+                      key={capability.id}
+                      onClick={() => handleFeatureClick(capability.slug)}
                       className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
                     >
                       <div className="flex h-8 w-8 items-center justify-center">
                         <Package className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <div className="font-medium">{feature.name}</div>
-                        {feature.description && (
+                        <div className="font-medium">{capability.name}</div>
+                        {capability.description && (
                           <div className="truncate text-xs text-muted-foreground">
-                            {feature.description}
+                            {capability.description}
                           </div>
                         )}
                       </div>
-                      {feature.featureType && (
-                        <div className="text-xs text-muted-foreground">
-                          {feature.featureType.replace('_', ' ')}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {capability.complexity && (
+                          <div className="text-xs text-muted-foreground">
+                            {capability.complexity}
+                          </div>
+                        )}
+                        {capability.category && capability.complexity && (
+                          <div className="text-xs text-muted-foreground">·</div>
+                        )}
+                        {capability.category && (
+                          <div className="text-xs text-muted-foreground">
+                            {capability.category}
+                          </div>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Alternatives Section */}
-              {results.alternatives.filter(alt => alt.openSourceTool && alt.proprietaryTool).length > 0 && (
-                <div>
-                  <div className="mb-1 px-2 text-xs font-semibold text-muted-foreground">
-                    Alternatives
-                  </div>
-                  {results.alternatives
-                    .filter(alternative => alternative.openSourceTool && alternative.proprietaryTool)
-                    .map((alternative) => (
-                    <button
-                      key={alternative.id}
-                      onClick={() => handleAlternativeClick(alternative)}
-                      className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
-                    >
-                      <div className="flex h-8 w-8 items-center justify-center">
-                        {alternative.openSourceTool!.simpleIconSlug ? (
-                          <ToolIcon
-                            name={alternative.openSourceTool!.name}
-                            simpleIconSlug={alternative.openSourceTool!.simpleIconSlug}
-                            simpleIconColor={alternative.openSourceTool!.simpleIconColor}
-                            size={24}
-                          />
-                        ) : (
-                          <div 
-                            className="flex aspect-square items-center justify-center rounded-md overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none"
-                            style={{ width: 24, height: 24 }}
-                          >
-                            {/* Noise texture overlay */}
-                            <div
-                              className="absolute inset-0 opacity-30"
-                              style={{
-                                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                                backgroundSize: "256px 256px",
-                              }}
-                            />
-                            
-                            {/* Letter */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span
-                                className="font-silkscreen text-gray-100 select-none"
-                                style={{ fontSize: 10 }}
-                              >
-                                {alternative.openSourceTool!.name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            
-                            {/* Subtle highlight */}
-                            <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/10 to-transparent rounded-t-md" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">
-                            {alternative.openSourceTool!.name}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            alternative to
-                          </span>
-                          <span className="font-medium">
-                            {alternative.proprietaryTool!.name}
-                          </span>
-                        </div>
-                        
-                        {/* Description */}
-                        {alternative.openSourceTool!.description && (
-                          <div className="truncate text-xs text-muted-foreground">
-                            {alternative.openSourceTool!.description}
-                          </div>
-                        )}
-                        
-                        {/* Link indicator */}
-                        <div className="flex items-center justify-between mt-1">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <ExternalLink className="h-3 w-3" />
-                            <span>
-                              {alternative.openSourceTool!.repositoryUrl ? 'View Repository' : 
-                               alternative.proprietaryTool!.websiteUrl ? 'Visit Website' : 'View Details'}
-                            </span>
-                          </div>
-                          {alternative.similarityScore && (
-                            <div className="text-xs text-muted-foreground">
-                              {Math.round(alternative.similarityScore * 100)}% match
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           ) : (
             <div className="p-4 text-center text-sm text-muted-foreground">
