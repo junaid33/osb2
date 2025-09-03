@@ -329,7 +329,7 @@ function renderProprietaryToolPage(tool: any, response: any, allProprietaryTools
   if (!response.success) {
     return (
       <section>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="py-8 md:py-16">
             <div className="text-center py-12">
               <p className="text-red-500">Failed to load alternatives: {response.error}</p>

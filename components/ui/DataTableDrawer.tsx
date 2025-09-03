@@ -19,18 +19,10 @@ import { LogoIcon } from "@/features/dashboard/components/Logo"
 import ToolIcon from '@/components/ToolIcon'
 import BuildStatsCard from './BuildStatsCard'
 
-// GraphQL query for searching capabilities
-const SEARCH_CAPABILITIES_QUERY = `
-  query SearchCapabilities($search: String!) {
+// GraphQL query for getting all open source applications
+const GET_ALL_OPEN_SOURCE_APPS = `
+  query GetAllOpenSourceApps {
     openSourceApplications(
-      where: {
-        OR: [
-          { name: { contains: $search, mode: insensitive } }
-          { slug: { contains: $search, mode: insensitive } }
-          { description: { contains: $search, mode: insensitive } }
-        ]
-      }
-      take: 8
       orderBy: { name: asc }
     ) {
       id
@@ -119,6 +111,9 @@ interface DataTableDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   data?: Transaction
+  apps: any[]
+  selectedCapabilities: SelectedCapability[]
+  onSelectedCapabilitiesChange: (capabilities: SelectedCapability[]) => void
 }
 
 const categories = [
@@ -570,6 +565,9 @@ export function DataTableDrawer({
   open,
   onOpenChange,
   data = defaultTransaction,
+  apps,
+  selectedCapabilities,
+  onSelectedCapabilitiesChange,
 }: DataTableDrawerProps) {
   const status = expense_statuses.find(
     (item) => item.value === data?.expense_status,
@@ -577,89 +575,47 @@ export function DataTableDrawer({
 
   // Starter templates (from legacy Build page)
   const starterTemplates = [
-    { id: "1", name: "Next.js + Keystone Starter", description: "Full-stack template with admin", source: "https://github.com/junaid33/next-keystone-starter" },
-    { id: "openfront", name: "Openfront", description: "Open source e-commerce platform", source: "https://github.com/openshiporg/openfront" },
-    { id: "openship", name: "Openship", description: "Order routing & fulfillment platform", source: "https://github.com/openshiporg/openship" },
-    { id: "opensource-builders", name: "opensource.builders", description: "Open source tool discovery platform", source: "https://github.com/junaid33/opensource.builders" },
-    { id: "byos", name: "Bring Your Own Starter", description: "Start with what you have", source: null },
+    { 
+      id: "1", 
+      name: "Next.js + Keystone Starter", 
+      description: "Full-stack template with admin", 
+      source: "https://github.com/junaid33/next-keystone-starter",
+      info: "A full-stack Next.js application combining Next.js (App Router) with KeystoneJS as a headless CMS. It features GraphQL API, custom admin dashboard, authentication, database integration with PostgreSQL, and role-based permissions. Built with modern TypeScript architecture and includes comprehensive documentation. This starter was used to build opensource.builders, Openfront, and Openship - all production applications demonstrating its capabilities."
+    },
+    { 
+      id: "openfront", 
+      name: "Openfront", 
+      description: "Open source e-commerce platform", 
+      source: "https://github.com/openshiporg/openfront",
+      info: "Openfront is built off of this same starter, but it's a Shopify alternative with comprehensive e-commerce features including product management, order processing, payment handling, and shipping integration."
+    },
+    { 
+      id: "openship", 
+      name: "Openship", 
+      description: "Order routing & fulfillment platform", 
+      source: "https://github.com/openshiporg/openship",
+      info: "Openship is built off the same Next.js + Keystone starter with additional order routing and fulfillment automation capabilities for dropshipping and multi-vendor marketplaces."
+    },
+    { 
+      id: "opensource-builders", 
+      name: "opensource.builders", 
+      description: "Open source tool discovery platform", 
+      source: "https://github.com/junaid33/opensource.builders",
+      info: "opensource.builders is built off the same Next.js + Keystone starter and helps developers discover and compare open source alternatives to proprietary tools."
+    },
+    { 
+      id: "byos", 
+      name: "Bring Your Own Starter", 
+      description: "Start with what you have", 
+      source: null,
+      info: "Use your existing codebase as the foundation. Perfect for integrating powerful features from open source tools into your current project without starting from scratch."
+    },
   ] as const
   const [selectedTemplate, setSelectedTemplate] = React.useState<string>("1")
   const [copied, setCopied] = React.useState(false)
-  
-  // Capability search state
-  const [search, setSearch] = React.useState('')
-  const [results, setResults] = React.useState<SearchResult | null>(null)
-  const [loading, setLoading] = React.useState(false)
-  const [selectedCapabilities, setSelectedCapabilities] = React.useState<SelectedCapability[]>([])
-  const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [capabilityStackIndices, setCapabilityStackIndices] = React.useState<{[key: string]: number}>({})
+  const [githubMcpEnabled, setGithubMcpEnabled] = React.useState(true)
 
-  // Load pinned capabilities from localStorage on mount
-  React.useEffect(() => {
-    try {
-      const pinnedCapabilities = localStorage.getItem('pinnedCapabilities')
-      if (pinnedCapabilities) {
-        const parsed = JSON.parse(pinnedCapabilities)
-        setSelectedCapabilities(parsed)
-      }
-    } catch (error) {
-      console.error('Error loading pinned capabilities:', error)
-    }
-  }, [])
-
-  // Refresh selected capabilities when drawer opens
-  React.useEffect(() => {
-    if (open) {
-      try {
-        const pinnedCapabilities = localStorage.getItem('pinnedCapabilities')
-        if (pinnedCapabilities) {
-          const parsed = JSON.parse(pinnedCapabilities)
-          setSelectedCapabilities(parsed)
-        }
-      } catch (error) {
-        console.error('Error refreshing pinned capabilities:', error)
-      }
-    }
-  }, [open])
-
-  // Save selected capabilities to localStorage whenever they change
-  React.useEffect(() => {
-    try {
-      localStorage.setItem('pinnedCapabilities', JSON.stringify(selectedCapabilities))
-    } catch (error) {
-      console.error('Error saving pinned capabilities:', error)
-    }
-  }, [selectedCapabilities])
-
-  // Debounced search function
-  const performSearch = React.useCallback(
-    debounce(async (searchTerm: string) => {
-      if (!searchTerm.trim()) {
-        setResults(null)
-        return
-      }
-
-      setLoading(true)
-      try {
-        const data = await request<SearchResult>(
-          '/api/graphql',
-          SEARCH_CAPABILITIES_QUERY,
-          { search: searchTerm }
-        )
-        setResults(data)
-      } catch (error) {
-        console.error('Search error:', error)
-        setResults(null)
-      } finally {
-        setLoading(false)
-      }
-    }, 300),
-    []
-  )
-
-  React.useEffect(() => {
-    performSearch(search)
-  }, [search, performSearch])
 
   const handleCapabilitySelect = (capability: any, toolId: string, toolName: string, toolIcon?: string, toolColor?: string, toolRepo?: string) => {
     const compositeId = `${toolId}-${capability.capability.id}`
@@ -680,18 +636,16 @@ export function DataTableDrawer({
       documentationUrl: capability.documentationUrl
     }
 
-    setSelectedCapabilities(prev => {
-      const isAlreadySelected = prev.some(f => f.id === compositeId)
-      if (isAlreadySelected) {
-        return prev.filter(f => f.id !== compositeId)
-      } else {
-        return [...prev, selectedCapability]
-      }
-    })
+    const isAlreadySelected = selectedCapabilities.some(f => f.id === compositeId)
+    if (isAlreadySelected) {
+      onSelectedCapabilitiesChange(selectedCapabilities.filter(f => f.id !== compositeId))
+    } else {
+      onSelectedCapabilitiesChange([...selectedCapabilities, selectedCapability])
+    }
   }
 
   const handleCapabilityRemove = (capabilityId: string) => {
-    setSelectedCapabilities(prev => prev.filter(f => f.id !== capabilityId))
+    onSelectedCapabilitiesChange(selectedCapabilities.filter(f => f.id !== capabilityId))
   }
 
   const handleCapabilityPin = (capabilityImpl: any, app: any) => {
@@ -713,25 +667,25 @@ export function DataTableDrawer({
       documentationUrl: capabilityImpl.documentationUrl
     }
 
-    setSelectedCapabilities(prev => {
-      const isAlreadySelected = prev.some(f => f.id === compositeId)
-      if (isAlreadySelected) {
-        return prev.filter(f => f.id !== compositeId)
-      } else {
-        return [...prev, selectedCapability]
-      }
-    })
+    const isAlreadySelected = selectedCapabilities.some(f => f.id === compositeId)
+    if (isAlreadySelected) {
+      onSelectedCapabilitiesChange(selectedCapabilities.filter(f => f.id !== compositeId))
+    } else {
+      onSelectedCapabilitiesChange([...selectedCapabilities, selectedCapability])
+    }
   }
 
   // Group capabilities by name and create stacks
   const groupedCapabilities = React.useMemo(() => {
     const groups: {[key: string]: SelectedCapability[]} = {}
-    selectedCapabilities.forEach(capability => {
-      if (!groups[capability.name]) {
-        groups[capability.name] = []
-      }
-      groups[capability.name].push(capability)
-    })
+    if (selectedCapabilities) {
+      selectedCapabilities.forEach(capability => {
+        if (!groups[capability.name]) {
+          groups[capability.name] = []
+        }
+        groups[capability.name].push(capability)
+      })
+    }
     return groups
   }, [selectedCapabilities])
 
@@ -892,7 +846,21 @@ export function DataTableDrawer({
                               </a>
                             )}
                             <span className="text-gray-500 dark:text-gray-600 text-xs">•</span>
-                            <span className="inline-flex items-center gap-1 text-gray-500 dark:text-gray-500 text-xs"><Info className="h-3 w-3" /> Info</span>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors text-xs">
+                                  <Info className="h-3 w-3" />
+                                  <span>Info</span>
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent side="top" className="w-80">
+                                <div className="space-y-2">
+                                  <p className="text-sm text-foreground">
+                                    {template?.info || 'starter'}
+                                  </p>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </div>
                         )
                       })()}
@@ -902,9 +870,10 @@ export function DataTableDrawer({
                     <div className="space-y-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Find Open Source Capabilities</p>
                       <BuildStatsCard 
+                        apps={apps}
                         onCapabilityPin={handleCapabilityPin}
                         onCapabilityUnpin={handleCapabilityRemove}
-                        selectedCapabilities={new Set(selectedCapabilities.map(cap => cap.id))}
+                        selectedCapabilities={new Set(selectedCapabilities?.map(cap => cap.id) || [])}
                       />
 
                       {/* Selected Capabilities */}
@@ -1031,38 +1000,301 @@ export function DataTableDrawer({
                       )}
                     </div>
                   </TremorTabsContent>
-                  <TremorTabsContent value="full-prompt" className="space-y-6 px-6">
-                    <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-50">Prompt</h3>
-                    <div className="space-y-2">
-                      <div className="px-2 py-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border/50 shadow-sm text-sm">
-                        <div className="hidden sm:flex items-center gap-2">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <button className="hover:bg-muted rounded p-1 transition-colors focus:outline-none focus:ring-0" aria-label="In a nutshell">
-                                <Lightbulb className="h-4 w-4 text-muted-foreground" />
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent side="top" className="w-80">
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Nut className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-sm font-medium">In a nutshell</span>
-                                </div>
-                                <p className="text-sm text-muted-foreground">Shows the generated AI prompt based on your selected starter and capabilities.</p>
+                  <TremorTabsContent value="full-prompt" className="space-y-6 px-6 mt-4">
+                    {/* Available MCP Servers */}
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Available MCP Servers</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setGithubMcpEnabled(!githubMcpEnabled)}
+                          className="inline-flex items-center gap-3 px-3 py-2 rounded-lg bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200 hover:from-gray-100 hover:to-gray-150 transition-all duration-200 shadow-sm"
+                        >
+                          <div className={`inline-block size-2 shrink-0 rounded-full ${
+                            githubMcpEnabled 
+                              ? 'bg-green-500 outline outline-3 -outline-offset-1 outline-green-100' 
+                              : 'bg-red-500 outline outline-3 -outline-offset-1 outline-red-100'
+                          }`} />
+                          <span className="text-sm font-medium">GitHub MCP</span>
+                        </button>
+                        
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="text-gray-400 hover:text-foreground transition-colors p-1">
+                              <Info className="h-4 w-4" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent side="top" className="w-80">
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <Github className="h-4 w-4" />
+                                <span className="text-sm font-medium">GitHub MCP Setup</span>
                               </div>
-                            </PopoverContent>
-                          </Popover>
-                          <button className="hover:bg-muted rounded p-1 transition-colors focus:outline-none focus:ring-0" aria-label="Expand">
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                        </div>
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          Placeholder prompt. Once wired, this will mirror the interactive prompt from the original Build page.
-                        </div>
+                              <div className="text-sm text-muted-foreground space-y-2">
+                                {githubMcpEnabled ? (
+                                  <p><strong>Enabled:</strong> The AI prompt will instruct to use the GitHub MCP for direct repository access. This uses fewer tokens since it doesn't need to search the web.</p>
+                                ) : (
+                                  <p><strong>Disabled:</strong> The AI prompt will instruct to use web search to look up GitHub code. This may use more tokens but works without MCP setup.</p>
+                                )}
+                                <div className="pt-2 border-t">
+                                  <p className="text-xs font-medium mb-2">To enable GitHub MCP:</p>
+                                  <div className="space-y-1 text-xs">
+                                    <p>1. Create a GitHub personal access token with public repository access</p>
+                                    <p>2. Add the GitHub MCP to your Claude Code/Cursor/VS Code configuration</p>
+                                  </div>
+                                  <a 
+                                    href="https://github.com/settings/tokens" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline text-xs block mt-2"
+                                  >
+                                    Create GitHub Token →
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </div>
+                    </div>
 
-                      <div className="ml-2 sm:ml-6 p-3 rounded-lg bg-background backdrop-blur-sm border border-border/50 shadow-sm text-xs text-muted-foreground">
-                        Use Next.js + Keystone starter. Then implement: 1) Block-based editor from Tool A, 2) Bi-directional linking from Tool B, 3) Real-time collaboration from Tool C.
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Generated Prompt</p>
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50 shadow-sm">
+                        <div className="text-sm leading-relaxed text-foreground">
+                          {(() => {
+                            const currentTemplate = starterTemplates.find(t => t.id === selectedTemplate)
+                            const capabilityGroups = Object.entries(groupedCapabilities)
+                            
+                            if (!currentTemplate && capabilityGroups.length === 0) {
+                              return (
+                                <span className="text-muted-foreground italic">
+                                  Select a starter and add capabilities to generate your AI prompt.
+                                </span>
+                              )
+                            }
+
+                            // Group capabilities by tool
+                            const capabilitiesByTool: {[toolName: string]: SelectedCapability[]} = {}
+                            selectedCapabilities.forEach(capability => {
+                              if (!capabilitiesByTool[capability.toolName]) {
+                                capabilitiesByTool[capability.toolName] = []
+                              }
+                              capabilitiesByTool[capability.toolName].push(capability)
+                            })
+
+                            return (
+                              <div className="space-y-4">
+                                {/* Starter paragraph */}
+                                {currentTemplate && (
+                                  <div className="flex items-start gap-2 text-sm leading-relaxed">
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <button className="flex-shrink-0 inline-flex items-center gap-2 hover:bg-muted/50 rounded px-1 py-0.5 transition-colors focus:outline-none focus:ring-0">
+                                          {currentTemplate.id === 'openfront' ? (
+                                            <OpenfrontIcon className="w-5 h-5" />
+                                          ) : currentTemplate.id === 'openship' ? (
+                                            <OpenshipIcon className="w-5 h-5" />
+                                          ) : currentTemplate.id === 'byos' ? (
+                                            <LogoIcon className="w-5 h-5" />
+                                          ) : currentTemplate.id === '1' ? (
+                                            <NextKeystoneIcon className="w-5 h-5" />
+                                          ) : currentTemplate.id === 'opensource-builders' ? (
+                                            <LogoIcon className="w-5 h-5" />
+                                          ) : (
+                                            <LogoIcon className="w-5 h-5" />
+                                          )}
+                                        </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent side="top" className="w-80">
+                                        <div className="space-y-3">
+                                          <div className="flex items-center gap-2">
+                                            {currentTemplate.id === 'openfront' ? (
+                                              <OpenfrontIcon className="w-4 h-4" />
+                                            ) : currentTemplate.id === 'openship' ? (
+                                              <OpenshipIcon className="w-4 h-4" />
+                                            ) : currentTemplate.id === 'byos' ? (
+                                              <LogoIcon className="w-4 h-4" />
+                                            ) : currentTemplate.id === '1' ? (
+                                              <NextKeystoneIcon className="w-4 h-4" />
+                                            ) : currentTemplate.id === 'opensource-builders' ? (
+                                              <LogoIcon className="w-4 h-4" />
+                                            ) : (
+                                              <LogoIcon className="w-4 h-4" />
+                                            )}
+                                            <span className="text-sm font-medium">Starter Template</span>
+                                          </div>
+                                          <div>
+                                            <p className="text-sm font-medium text-foreground">{currentTemplate.name}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">{currentTemplate.description}</p>
+                                          </div>
+                                          {currentTemplate.info && (
+                                            <p className="text-sm text-muted-foreground">{currentTemplate.info}</p>
+                                          )}
+                                          <div className="flex items-center gap-2 pt-2 border-t">
+                                            {currentTemplate.source && (
+                                              <a
+                                                href={currentTemplate.source}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors text-xs"
+                                              >
+                                                <Github className="h-3 w-3" />
+                                                <span>Source</span>
+                                              </a>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </PopoverContent>
+                                    </Popover>
+                                    <div className="flex-1">
+                                      {currentTemplate.id === '1' ? (
+                                        <>
+                                          Please git clone this repo: <code className="bg-muted px-1 rounded text-xs">git clone https://github.com/junaid33/next-keystone-starter.git</code>
+                                          <br /><br />
+                                          Then read the README.md and other relevant markdown files to get a general sense of how this full-stack Next.js application works. It's a Next.js application with a Keystone admin dashboard built-in, a GraphQL API, role-based permissions, and is designed with feature slices architecture. Review the /features directory structure and the project's architecture documentation.
+                                        </>
+                                      ) : (
+                                        <>
+                                          Use the {currentTemplate.name} as your starting point. This template provides {currentTemplate.description.toLowerCase()} and will serve as the foundation for your application.
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Tool-specific capability paragraphs */}
+                                {Object.entries(capabilitiesByTool).map(([toolName, capabilities]) => {
+                                  const firstCapability = capabilities[0]
+                                  return (
+                                    <div key={toolName} className="flex items-start gap-2 text-sm leading-relaxed">
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <button className="flex-shrink-0 inline-flex items-center gap-2 hover:bg-muted/50 rounded px-1 py-0.5 transition-colors focus:outline-none focus:ring-0">
+                                            {firstCapability.toolIcon ? (
+                                              <ToolIcon
+                                                name={firstCapability.toolName}
+                                                simpleIconSlug={firstCapability.toolIcon}
+                                                simpleIconColor={firstCapability.toolColor}
+                                                size={20}
+                                              />
+                                            ) : (
+                                              <div 
+                                                className="flex aspect-square items-center justify-center rounded-sm overflow-hidden text-[10px] font-silkscreen"
+                                                style={{ 
+                                                  width: 20, 
+                                                  height: 20,
+                                                  background: firstCapability.toolColor || '#6B7280',
+                                                  color: 'white'
+                                                }}
+                                              >
+                                                {firstCapability.toolName.charAt(0).toUpperCase()}
+                                              </div>
+                                            )}
+                                          </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent side="top" className="w-80">
+                                          <div className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                              {firstCapability.toolIcon ? (
+                                                <ToolIcon
+                                                  name={firstCapability.toolName}
+                                                  simpleIconSlug={firstCapability.toolIcon}
+                                                  simpleIconColor={firstCapability.toolColor}
+                                                  size={20}
+                                                />
+                                              ) : (
+                                                <div 
+                                                  className="flex aspect-square items-center justify-center rounded-md overflow-hidden text-xs font-silkscreen"
+                                                  style={{ 
+                                                    width: 20, 
+                                                    height: 20,
+                                                    background: firstCapability.toolColor || '#6B7280',
+                                                    color: 'white'
+                                                  }}
+                                                >
+                                                  {firstCapability.toolName.charAt(0).toUpperCase()}
+                                                </div>
+                                              )}
+                                              <span className="text-sm font-medium">Capabilities from {toolName}</span>
+                                            </div>
+                                            <div className="space-y-2">
+                                              {capabilities.map(capability => (
+                                                <div key={capability.id} className="p-2 rounded border bg-muted/30">
+                                                  <p className="text-sm font-medium">{capability.name}</p>
+                                                  {capability.description && (
+                                                    <p className="text-xs text-muted-foreground mt-1">{capability.description}</p>
+                                                  )}
+                                                  {capability.implementationNotes && (
+                                                    <p className="text-xs text-muted-foreground mt-1 italic">{capability.implementationNotes}</p>
+                                                  )}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        </PopoverContent>
+                                      </Popover>
+                                      <div className="flex-1">
+                                        From {toolName}, implement the following capabilities:
+                                        
+                                        {capabilities.map((capability, index) => (
+                                          <div key={capability.id} className="mt-3">
+                                            {/* Everything inside one card */}
+                                            <div className="w-full cursor-pointer transition duration-100 ease-linear rounded-[10px] bg-card text-foreground shadow-xs ring-1 ring-inset ring-border hover:bg-muted/50 p-4">
+                                              {/* Header with badge */}
+                                              <div className="inline-flex items-center mb-3">
+                                                <span className="inline-flex items-center rounded-md bg-muted shadow-xs ring-1 ring-inset ring-border gap-1.5 px-2 py-0.5">
+                                                  <span className="inline-block size-2 shrink-0 rounded-full bg-primary outline outline-3 -outline-offset-1 outline-primary/20" />
+                                                  {capability.name}
+                                                </span>
+                                              </div>
+                                              
+                                              {/* All content inside the card */}
+                                              <div className="space-y-3 text-sm">
+                                                {capability.description && (
+                                                  <div className="text-muted-foreground">{capability.description}</div>
+                                                )}
+                                                
+                                                {capability.githubPath && capability.toolRepo && (
+                                                  <div className="text-muted-foreground">
+                                                    {githubMcpEnabled ? (
+                                                      <>Use the GitHub MCP to access the {toolName} repository at <code className="bg-muted px-1 rounded text-xs">{capability.toolRepo}</code>, then analyze <code className="bg-muted px-1 rounded text-xs">{capability.githubPath}</code> to understand the implementation.</>
+                                                    ) : (
+                                                      <>Look up <code className="bg-muted px-1 rounded text-xs">{capability.githubPath}</code> in the {toolName} repository on GitHub for implementation details.</>
+                                                    )}
+                                                  </div>
+                                                )}
+                                                
+                                                {capability.documentationUrl && (
+                                                  <div className="text-muted-foreground">
+                                                    Reference the documentation at: <a href={capability.documentationUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{capability.documentationUrl}</a>
+                                                  </div>
+                                                )}
+                                                
+                                                {capability.implementationNotes && (
+                                                  <div className="text-muted-foreground">
+                                                    <em>Note: {capability.implementationNotes}</em>
+                                                  </div>
+                                                )}
+                                                
+                                                {capability.implementationComplexity && (
+                                                  <div>
+                                                    <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                                                      Complexity: {capability.implementationComplexity}
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </TremorTabsContent>

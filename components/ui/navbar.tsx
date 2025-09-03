@@ -7,18 +7,40 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NavbarSearch } from "@/features/search/components/NavbarSearch";
 import { DataTableDrawer } from "@/components/ui/DataTableDrawer";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface NavbarProps {
   className?: string;
+  apps: any[];
 }
 
-export default function Navbar({ className }: NavbarProps) {
+export default function Navbar({ className, apps }: NavbarProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedCapabilities, setSelectedCapabilities] = useState([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pinnedCapabilities');
+      if (saved) {
+        setSelectedCapabilities(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading capabilities:', error);
+    }
+  }, []);
+
+  const handleSelectedCapabilitiesChange = (capabilities) => {
+    setSelectedCapabilities(capabilities);
+    try {
+      localStorage.setItem('pinnedCapabilities', JSON.stringify(capabilities));
+    } catch (error) {
+      console.error('Error saving capabilities:', error);
+    }
+  };
 
   return (
     <>
-      <header className={cn("px-4 md:px-6 bg-transparent backdrop-blur-0 shadow-none", className)}>
+      <header className={cn("bg-transparent backdrop-blur-0 shadow-none", className)}>
         <div className="flex flex-col">
           {/* Main navbar row */}
           <div className="flex h-16 items-center justify-between gap-4">
@@ -58,6 +80,9 @@ export default function Navbar({ className }: NavbarProps) {
       <DataTableDrawer 
         open={drawerOpen} 
         onOpenChange={setDrawerOpen}
+        apps={apps}
+        selectedCapabilities={selectedCapabilities}
+        onSelectedCapabilitiesChange={handleSelectedCapabilitiesChange}
       />
     </>
   );

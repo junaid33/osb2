@@ -597,7 +597,7 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
                                   onClick={(e) => e.stopPropagation()}
                                   className="text-muted-foreground hover:text-foreground"
                                 >
-                                  META
+                                  INFO
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent className="w-80 p-3" side="bottom" align="start">

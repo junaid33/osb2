@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
@@ -12,42 +12,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { request } from 'graphql-request';
 import debounce from 'lodash.debounce';
 import ToolIcon from '@/components/ToolIcon';
 
-// GraphQL query to get all open source applications
-const GET_ALL_OPEN_SOURCE_APPS = `
-  query GetAllOpenSourceApps {
-    openSourceApplications(
-      orderBy: { name: asc }
-    ) {
-      id
-      name
-      slug
-      description
-      repositoryUrl
-      websiteUrl
-      simpleIconSlug
-      simpleIconColor
-      capabilities {
-        capability {
-          id
-          name
-          slug
-          description
-          category
-          complexity
-        }
-        implementationNotes
-        githubPath
-        documentationUrl
-        implementationComplexity
-        isActive
-      }
-    }
-  }
-`;
 
 interface Capability {
   id: string;
@@ -92,11 +59,9 @@ interface OpenSourceApp {
   capabilities: CapabilityImpl[];
 }
 
-interface OpenSourceAppsResponse {
-  openSourceApplications: OpenSourceApp[];
-}
 
 interface BuildStatsCardProps {
+  apps: OpenSourceApp[];
   onCapabilityPin?: (capability: any, app: OpenSourceApp) => void;
   onCapabilityUnpin?: (capabilityId: string) => void;
   selectedCapabilities?: Set<string>;
@@ -117,33 +82,22 @@ function DonutChart({ percentage, compatible }: { percentage: number; compatible
   const backgroundData = [{ name: "background", value: 100, fill: "#E5E7EB" }];
   const fillColor = compatible ? "#10B981" : "#EF4444";
   const foregroundData = [
-    {
-      name: "used",
-      value: compatible ? 100 : Math.max(0, Math.min(100, Number(percentage))),
-      fill: fillColor,
-    },
-    {
-      name: "empty",
-      value: compatible ? 0 : 100 - Math.max(0, Math.min(100, Number(percentage))),
-      fill: "transparent",
-    },
+    { name: "used", value: percentage, fill: fillColor },
+    { name: "remaining", value: 100 - percentage, fill: "transparent" },
   ];
 
   return (
-    <ChartContainer
-      config={chartConfig}
-      className="w-6 h-6 flex-shrink-0 aspect-square"
-    >
+    <ChartContainer config={chartConfig} className="h-8 w-8">
       <PieChart>
         <Pie
           data={backgroundData}
           dataKey="value"
-          nameKey="name"
           cx="50%"
           cy="50%"
-          innerRadius={6}
-          outerRadius={10}
-          isAnimationActive={false}
+          innerRadius={10}
+          outerRadius={14}
+          startAngle={90}
+          endAngle={-270}
         >
           {backgroundData.map((entry, index) => (
             <Cell key={`bg-cell-${index}`} fill={entry.fill} />
@@ -152,11 +106,10 @@ function DonutChart({ percentage, compatible }: { percentage: number; compatible
         <Pie
           data={foregroundData}
           dataKey="value"
-          nameKey="name"
           cx="50%"
           cy="50%"
-          innerRadius={6}
-          outerRadius={10}
+          innerRadius={10}
+          outerRadius={14}
           startAngle={90}
           endAngle={-270}
         >
@@ -169,109 +122,45 @@ function DonutChart({ percentage, compatible }: { percentage: number; compatible
   );
 }
 
-export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, selectedCapabilities: externalSelectedCapabilities }: BuildStatsCardProps) {
+export default function BuildStatsCard({ apps, onCapabilityPin, onCapabilityUnpin, selectedCapabilities: externalSelectedCapabilities }: BuildStatsCardProps) {
   const [currentAppIndex, setCurrentAppIndex] = useState(0);
   const [pinnedCapabilities, setPinnedCapabilities] = useState<Set<string>>(new Set());
   const [hoveredCapability, setHoveredCapability] = useState<string | null>(null);
   const [capabilitySearch, setCapabilitySearch] = useState('');
   const [isAppsDropdownOpen, setIsAppsDropdownOpen] = useState(false);
   const [appSearchTerm, setAppSearchTerm] = useState('');
-  const [filteredApps, setFilteredApps] = useState<OpenSourceApp[]>([]);
-  const [apps, setApps] = useState<OpenSourceApp[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const appSearchRef = useRef<HTMLInputElement>(null);
 
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsAppsDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  // Close dropdown on escape key
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsAppsDropdownOpen(false)
-      }
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [])
-
-  // Load all open source apps on mount
-  useEffect(() => {
-    loadApps();
-  }, []);
-
-  // Debounced search for apps
-  const performAppSearch = useCallback(
-    debounce((search: string, allApps: OpenSourceApp[]) => {
-      if (!search.trim()) {
-        setFilteredApps(allApps)
-        return
-      }
-
-      const filtered = allApps.filter(app => 
-        app.name.toLowerCase().includes(search.toLowerCase()) ||
-        (app.description && app.description.toLowerCase().includes(search.toLowerCase()))
+  // Filter apps based on search
+  const filteredApps = appSearchTerm.trim() 
+    ? apps.filter(app =>
+        app.name.toLowerCase().includes(appSearchTerm.toLowerCase()) ||
+        app.description?.toLowerCase().includes(appSearchTerm.toLowerCase())
       )
-      
-      setFilteredApps(filtered)
-    }, 300),
-    []
-  )
+    : apps;
 
-  // Update filtered apps when search term or apps change
-  useEffect(() => {
-    performAppSearch(appSearchTerm, apps)
-  }, [appSearchTerm, apps, performAppSearch])
-
-  // Sync pinned capabilities with external selected capabilities
-  useEffect(() => {
-    if (externalSelectedCapabilities && apps.length > 0) {
-      const currentApp = apps[currentAppIndex];
-      if (currentApp) {
-        const newPinnedCapabilities = new Set<string>();
-        currentApp.capabilities.forEach(capImpl => {
-          const compositeId = `${currentApp.id}-${capImpl.capability.id}`;
-          if (externalSelectedCapabilities.has(compositeId)) {
-            newPinnedCapabilities.add(capImpl.capability.name);
-          }
-        });
-        setPinnedCapabilities(newPinnedCapabilities);
+  // Sync pinned capabilities
+  const currentApp = apps[currentAppIndex];
+  if (externalSelectedCapabilities && currentApp && apps.length > 0) {
+    const newPinnedCapabilities = new Set<string>();
+    currentApp.capabilities.forEach(capImpl => {
+      const compositeId = `${currentApp.id}-${capImpl.capability.id}`;
+      if (externalSelectedCapabilities.has(compositeId)) {
+        newPinnedCapabilities.add(capImpl.capability.name);
       }
+    });
+    if (JSON.stringify([...pinnedCapabilities]) !== JSON.stringify([...newPinnedCapabilities])) {
+      setPinnedCapabilities(newPinnedCapabilities);
     }
-  }, [externalSelectedCapabilities, apps, currentAppIndex])
-
-  const loadApps = async () => {
-    setLoading(true);
-    try {
-      const data = await request<OpenSourceAppsResponse>(
-        '/api/graphql',
-        GET_ALL_OPEN_SOURCE_APPS
-      );
-      setApps(data.openSourceApplications);
-      setFilteredApps(data.openSourceApplications);
-    } catch (error) {
-      console.error('Error loading open source apps:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }
 
   const handleAppChange = (newIndex: number) => {
     setCurrentAppIndex(newIndex);
     setPinnedCapabilities(new Set());
     setHoveredCapability(null);
-    setIsAppsDropdownOpen(false);
-    setAppSearchTerm('');
+    setCapabilitySearch('');
   };
 
   const nextApp = () => {
@@ -285,66 +174,46 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
   };
 
   const toggleAppsDropdown = () => {
-    const newIsOpen = !isAppsDropdownOpen;
-    setIsAppsDropdownOpen(newIsOpen);
-    
-    if (newIsOpen) {
+    setIsAppsDropdownOpen(!isAppsDropdownOpen);
+    if (!isAppsDropdownOpen) {
       setTimeout(() => {
         appSearchRef.current?.focus();
-      }, 0);
-    } else {
-      setAppSearchTerm('');
+      }, 100);
     }
   };
 
-  const togglePin = (capabilityName: string) => {
+  const selectApp = (index: number) => {
+    const originalIndex = apps.findIndex(a => a.id === apps[index].id);
+    handleAppChange(originalIndex);
+    setIsAppsDropdownOpen(false);
+    setAppSearchTerm('');
+  };
+
+  const handlePinCapability = (capability: CapabilityItem) => {
     const currentApp = apps[currentAppIndex];
     if (!currentApp) return;
-
-    const capabilityImpl = currentApp.capabilities.find(cap => cap.capability.name === capabilityName);
+    
+    const capabilityImpl = currentApp.capabilities.find(
+      capImpl => capImpl.capability.name === capability.name
+    );
+    
     if (!capabilityImpl) return;
 
-    const isPinning = !pinnedCapabilities.has(capabilityName);
     const compositeId = `${currentApp.id}-${capabilityImpl.capability.id}`;
-
-    setPinnedCapabilities(prev => {
-      const newPinned = new Set(prev);
-      
-      if (newPinned.has(capabilityName)) {
-        newPinned.delete(capabilityName);
-      } else {
-        newPinned.add(capabilityName);
+    
+    if (pinnedCapabilities.has(capability.name)) {
+      if (onCapabilityUnpin) {
+        onCapabilityUnpin(compositeId);
       }
-
-      return newPinned;
-    });
-
-    // Call the appropriate callback outside of setState
-    if (isPinning && onCapabilityPin) {
-      onCapabilityPin(capabilityImpl, currentApp);
-    } else if (!isPinning && onCapabilityUnpin) {
-      onCapabilityUnpin(compositeId);
+    } else {
+      if (onCapabilityPin) {
+        onCapabilityPin(capabilityImpl, currentApp);
+      }
     }
   };
 
-  if (loading) {
-    return (
-      <div className="group relative p-1 rounded-xl transition-all duration-300 bg-muted border border-border ring-2 ring-border/50">
-        <div className="relative flex flex-col space-y-2">
-          <div className="flex items-center justify-between px-3 py-2">
-            <div className="flex flex-col">
-              <h3 className="text-sm font-medium text-foreground">Loading...</h3>
-              <p className="text-xs text-muted-foreground font-medium">
-                Fetching open source applications
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (apps.length === 0) {
+  // No apps state
+  if (!apps || apps.length === 0) {
     return (
       <div className="group relative p-1 rounded-xl transition-all duration-300 bg-muted border border-border ring-2 ring-border/50">
         <div className="relative flex flex-col space-y-2">
@@ -361,20 +230,18 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
     );
   }
 
-  const currentApp = apps[currentAppIndex];
-  
   // Transform capabilities data for current app
   const capabilityData: CapabilityItem[] = currentApp.capabilities.map(capImpl => ({
     name: capImpl.capability.name,
     category: capImpl.capability.category || 'other',
-    percentage: 100, // All capabilities are available for open source apps
-    compatible: true,
-    description: capImpl.capability.description,
-    complexity: capImpl.capability.complexity,
+    percentage: 100, // Always 100% for open source
+    compatible: true, // Open source is always compatible
     implementationNotes: capImpl.implementationNotes,
     githubPath: capImpl.githubPath,
     documentationUrl: capImpl.documentationUrl,
-    implementationComplexity: capImpl.implementationComplexity
+    implementationComplexity: capImpl.implementationComplexity,
+    description: capImpl.capability.description,
+    complexity: capImpl.capability.complexity,
   }));
 
   const compatibleCount = capabilityData.length; // All are compatible
@@ -440,43 +307,38 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
                       <Input
                         ref={appSearchRef}
                         type="search"
-                        placeholder="Search open source apps..."
-                        className="h-9 w-full pl-9 pr-3 text-sm"
+                        placeholder="Search applications..."
+                        className="pl-9 pr-3 h-9 text-sm"
                         value={appSearchTerm}
                         onChange={(e) => setAppSearchTerm(e.target.value)}
                       />
                     </div>
-
-                    {/* Results */}
-                    <div className="max-h-64 overflow-auto">
+                    
+                    {/* Applications List */}
+                    <div className="space-y-1 max-h-64 overflow-y-auto">
                       {filteredApps.length > 0 ? (
-                        filteredApps.map((app, index) => {
-                          const originalIndex = apps.findIndex(a => a.id === app.id);
-                          return (
-                            <button
-                              key={app.id}
-                              onClick={() => handleAppChange(originalIndex)}
-                              className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent ${
-                                originalIndex === currentAppIndex ? 'bg-accent' : ''
-                              }`}
-                            >
-                              <div className="flex h-8 w-8 items-center justify-center">
-                                <ToolIcon
-                                  name={app.name}
-                                  simpleIconSlug={app.simpleIconSlug}
-                                  simpleIconColor={app.simpleIconColor}
-                                  size={24}
-                                />
+                        filteredApps.map((app, index) => (
+                          <button
+                            key={app.id}
+                            onClick={() => selectApp(index)}
+                            className="w-full flex items-center gap-3 p-2 rounded-md text-left hover:bg-muted/50 transition-colors"
+                          >
+                            <ToolIcon
+                              name={app.name}
+                              simpleIconSlug={app.simpleIconSlug}
+                              simpleIconColor={app.simpleIconColor}
+                              size={24}
+                            />
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <div className="text-sm font-medium text-foreground truncate">
+                                {app.name}
                               </div>
-                              <div className="flex-1 overflow-hidden">
-                                <div className="font-medium">{app.name}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {app.capabilities?.length || 0} capabilities
-                                </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {app.capabilities.length} capabilities
                               </div>
-                            </button>
-                          );
-                        })
+                            </div>
+                          </button>
+                        ))
                       ) : (
                         <div className="p-4 text-center text-sm text-muted-foreground">
                           {appSearchTerm.trim() 
@@ -577,8 +439,7 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
                   if (!a.compatible && b.compatible) return 1;
                   return 0;
                 })
-            })()
-              .map((item) => {
+                .map((item) => {
                 const isPinned = pinnedCapabilities.has(item.name);
                 const isHovered = hoveredCapability === item.name;
                 const showPin = item.compatible; // Only show pin for compatible capabilities
@@ -588,16 +449,13 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
                     key={item.name}
                     onClick={showPin ? (e) => {
                       e.preventDefault()
-                      togglePin(item.name)
+                      handlePinCapability(item)
                     } : undefined}
                     onMouseEnter={() => setHoveredCapability(item.name)}
                     onMouseLeave={() => setHoveredCapability(null)}
                     className="flex items-center justify-between gap-5 rounded-2xl bg-background border p-2"
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="rounded-lg p-1 flex-shrink-0">
-                        <DonutChart percentage={item.percentage} compatible={item.compatible} />
-                      </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold truncate">{item.name}</div>
                         <div className="flex items-center gap-1 text-[11px] font-medium">
@@ -636,15 +494,14 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
                                   onClick={(e) => e.stopPropagation()}
                                   className="text-muted-foreground hover:text-foreground"
                                 >
-                                  META
+                                  INFO
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent className="w-80 p-3" side="bottom" align="start">
                                 <div className="space-y-3">
                                   <div className="text-sm font-medium">{item.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    <div className="font-medium mb-1">Implementation Notes:</div>
-                                    <div>{item.implementationNotes}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {item.implementationNotes}
                                   </div>
                                   {item.implementationComplexity && (
                                     <div className="text-xs text-muted-foreground">
@@ -667,7 +524,8 @@ export default function BuildStatsCard({ onCapabilityPin, onCapabilityUnpin, sel
                     )}
                   </div>
                 );
-              })}
+                })
+            })()}
           </div>
         </div>
         )}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Clock } from 'lucide-react'
+import { Clock, ArrowUpRight } from 'lucide-react'
 import ToolIcon from '@/components/ToolIcon'
 import { ProprietaryAppsDropdown } from './ProprietaryAppsDropdown'
 import type { ProprietaryApp } from '../actions/getAlternatives'
@@ -44,14 +44,21 @@ export function HeroSection({ proprietaryApp }: HeroSectionProps) {
             href={proprietaryApp.websiteUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/80 text-sm text-white font-medium hover:bg-black/90 transition-colors cursor-pointer"
+            className="inline-flex items-center rounded-md bg-muted shadow-xs ring-1 ring-inset ring-border gap-1.5 px-2 py-0.5 hover:bg-muted/80 transition-colors"
           >
-            <Clock className="h-4 w-4 opacity-60" />
-            <span className="opacity-60">
+            <span 
+              className="inline-block size-2 shrink-0 rounded-full outline outline-3 -outline-offset-1"
+              style={{ 
+                backgroundColor: proprietaryApp.simpleIconColor || '#3b82f6',
+                outlineColor: `${proprietaryApp.simpleIconColor || '#3b82f6'}30`
+              }}
+            />
+            <span className="text-sm font-medium">
               {proprietaryApp.websiteUrl 
                 ? proprietaryApp.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
                 : 'website.com'}
             </span>
+            <ArrowUpRight className="h-3 w-3 opacity-60" />
           </a>
         </div>
         {/* <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
