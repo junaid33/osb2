@@ -65,6 +65,15 @@ interface BuildStatsCardProps {
   onCapabilityPin?: (capability: any, app: OpenSourceApp) => void;
   onCapabilityUnpin?: (capabilityId: string) => void;
   selectedCapabilities?: Set<string>;
+  // Controlled state props for persistence across tab switches
+  currentAppIndex?: number;
+  onCurrentAppIndexChange?: (index: number) => void;
+  isCollapsed?: boolean;
+  onIsCollapsedChange?: (collapsed: boolean) => void;
+  capabilitySearch?: string;
+  onCapabilitySearchChange?: (search: string) => void;
+  appSearchTerm?: string;
+  onAppSearchTermChange?: (term: string) => void;
 }
 
 const chartConfig = {
@@ -122,14 +131,39 @@ function DonutChart({ percentage, compatible }: { percentage: number; compatible
   );
 }
 
-export default function BuildStatsCard({ apps, onCapabilityPin, onCapabilityUnpin, selectedCapabilities: externalSelectedCapabilities }: BuildStatsCardProps) {
-  const [currentAppIndex, setCurrentAppIndex] = useState(0);
+export default function BuildStatsCard({ 
+  apps, 
+  onCapabilityPin, 
+  onCapabilityUnpin, 
+  selectedCapabilities: externalSelectedCapabilities,
+  // Controlled state props
+  currentAppIndex: controlledCurrentAppIndex,
+  onCurrentAppIndexChange,
+  isCollapsed: controlledIsCollapsed,
+  onIsCollapsedChange,
+  capabilitySearch: controlledCapabilitySearch,
+  onCapabilitySearchChange,
+  appSearchTerm: controlledAppSearchTerm,
+  onAppSearchTermChange
+}: BuildStatsCardProps) {
+  // Use controlled state if provided, otherwise fall back to internal state
+  const [internalCurrentAppIndex, setInternalCurrentAppIndex] = useState(0);
+  const [internalIsCollapsed, setInternalIsCollapsed] = useState(false);
+  const [internalCapabilitySearch, setInternalCapabilitySearch] = useState('');
+  const [internalAppSearchTerm, setInternalAppSearchTerm] = useState('');
+  
+  const currentAppIndex = controlledCurrentAppIndex ?? internalCurrentAppIndex;
+  const setCurrentAppIndex = onCurrentAppIndexChange ?? setInternalCurrentAppIndex;
+  const isCollapsed = controlledIsCollapsed ?? internalIsCollapsed;
+  const setIsCollapsed = onIsCollapsedChange ?? setInternalIsCollapsed;
+  const capabilitySearch = controlledCapabilitySearch ?? internalCapabilitySearch;
+  const setCapabilitySearch = onCapabilitySearchChange ?? setInternalCapabilitySearch;
+  const appSearchTerm = controlledAppSearchTerm ?? internalAppSearchTerm;
+  const setAppSearchTerm = onAppSearchTermChange ?? setInternalAppSearchTerm;
+
   const [pinnedCapabilities, setPinnedCapabilities] = useState<Set<string>>(new Set());
   const [hoveredCapability, setHoveredCapability] = useState<string | null>(null);
-  const [capabilitySearch, setCapabilitySearch] = useState('');
   const [isAppsDropdownOpen, setIsAppsDropdownOpen] = useState(false);
-  const [appSearchTerm, setAppSearchTerm] = useState('');
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const appSearchRef = useRef<HTMLInputElement>(null);
 
@@ -446,7 +480,7 @@ export default function BuildStatsCard({ apps, onCapabilityPin, onCapabilityUnpi
                 
                 return (
                   <div
-                    key={item.name}
+                    key={`${currentApp.id}-${item.name}`}
                     onClick={showPin ? (e) => {
                       e.preventDefault()
                       handlePinCapability(item)

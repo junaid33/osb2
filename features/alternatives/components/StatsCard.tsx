@@ -13,6 +13,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useCapabilityActions } from '@/hooks/use-capabilities-config';
+import type { SelectedCapability } from '@/hooks/use-capabilities-config';
 
 interface Capability {
   id: string;
@@ -138,6 +140,7 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
   const [filteredAlternatives, setFilteredAlternatives] = useState<OpenSourceAlternative[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const alternativeSearchRef = useRef<HTMLInputElement>(null);
+  const { addCapability, removeCapability } = useCapabilityActions();
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -267,9 +270,16 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
     const capabilityItem = capabilityData.find(item => item.name === capabilityName)
     if (!capabilityItem) return
 
+    // Find the actual capability object to get the real ID
+    const actualCapability = capabilities.find(cap => cap.name === capabilityName)
+    if (!actualCapability) return
+
+    const compositeId = `${currentAlternative.id}-${actualCapability.id}`
+    const isPinning = !pinnedCapabilities.has(capabilityName)
+
+    // Update local state first
     setPinnedCapabilities(prev => {
       const newPinned = new Set(prev);
-      const isPinning = !newPinned.has(capabilityName)
       
       if (newPinned.has(capabilityName)) {
         newPinned.delete(capabilityName);
@@ -277,49 +287,31 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
         newPinned.add(capabilityName);
       }
 
-      // Also save to localStorage for the drawer
-      if (isPinning) {
-        try {
-          const existingPinned = JSON.parse(localStorage.getItem('pinnedCapabilities') || '[]')
-          const compositeId = `${currentAlternative.id}-${capabilityName.replace(/\s+/g, '-').toLowerCase()}`
-          
-          const newCapability = {
-            id: compositeId,
-            capabilityId: capabilityName.replace(/\s+/g, '-').toLowerCase(),
-            toolId: currentAlternative.id,
-            name: capabilityName,
-            description: capabilityItem.description,
-            category: capabilityItem.category,
-            complexity: capabilityItem.implementationComplexity || capabilityItem.complexity,
-            toolName: currentAlternative.name,
-            toolIcon: currentAlternative.simpleIconSlug,
-            toolColor: currentAlternative.simpleIconColor,
-            toolRepo: currentAlternative.repositoryUrl,
-            implementationNotes: capabilityItem.implementationNotes,
-            githubPath: capabilityItem.githubPath,
-            documentationUrl: capabilityItem.documentationUrl
-          }
-
-          const updatedPinned = existingPinned.filter((c: any) => c.id !== compositeId)
-          updatedPinned.push(newCapability)
-          localStorage.setItem('pinnedCapabilities', JSON.stringify(updatedPinned))
-        } catch (error) {
-          console.error('Error saving pinned capability:', error)
-        }
-      } else {
-        // Remove from localStorage
-        try {
-          const existingPinned = JSON.parse(localStorage.getItem('pinnedCapabilities') || '[]')
-          const compositeId = `${currentAlternative.id}-${capabilityName.replace(/\s+/g, '-').toLowerCase()}`
-          const updatedPinned = existingPinned.filter((c: any) => c.id !== compositeId)
-          localStorage.setItem('pinnedCapabilities', JSON.stringify(updatedPinned))
-        } catch (error) {
-          console.error('Error removing pinned capability:', error)
-        }
-      }
-
       return newPinned;
     });
+
+    // Update global store after local state update
+    if (isPinning) {
+      const newCapability: SelectedCapability = {
+        id: compositeId,
+        capabilityId: actualCapability.id,
+        toolId: currentAlternative.id,
+        name: capabilityName,
+        description: capabilityItem.description,
+        category: capabilityItem.category,
+        complexity: capabilityItem.implementationComplexity || capabilityItem.complexity,
+        toolName: currentAlternative.name,
+        toolIcon: currentAlternative.simpleIconSlug,
+        toolColor: currentAlternative.simpleIconColor,
+        toolRepo: currentAlternative.repositoryUrl,
+        implementationNotes: capabilityItem.implementationNotes,
+        githubPath: capabilityItem.githubPath,
+        documentationUrl: capabilityItem.documentationUrl
+      }
+      addCapability(newCapability)
+    } else {
+      removeCapability(compositeId)
+    }
   };
 
   return (

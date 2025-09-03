@@ -9,6 +9,7 @@ import React from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { request } from 'graphql-request'
 import debounce from 'lodash.debounce'
 // Using Tremor-style Select components defined below for consistent styling
@@ -18,6 +19,8 @@ import { NextKeystoneIcon } from "@/components/NextKeystoneIcon"
 import { LogoIcon } from "@/features/dashboard/components/Logo"
 import ToolIcon from '@/components/ToolIcon'
 import BuildStatsCard from './BuildStatsCard'
+import { useCapabilitiesConfig, useCapabilityActions, useLastPinnedTool } from '@/hooks/use-capabilities-config'
+import type { SelectedCapability } from '@/hooks/use-capabilities-config'
 
 // GraphQL query for getting all open source applications
 const GET_ALL_OPEN_SOURCE_APPS = `
@@ -80,22 +83,7 @@ interface SearchResult {
   }[]
 }
 
-interface SelectedCapability {
-  id: string // composite key: toolId-capabilityId
-  capabilityId: string
-  toolId: string
-  name: string
-  description?: string
-  category?: string
-  complexity?: string
-  toolName: string
-  toolIcon?: string
-  toolColor?: string
-  toolRepo?: string
-  implementationNotes?: string
-  githubPath?: string
-  documentationUrl?: string
-}
+// Removed - using SelectedCapability from hooks/use-capabilities-config
 
 // Placeholder data types
 interface Transaction {
@@ -113,7 +101,7 @@ interface DataTableDrawerProps {
   data?: Transaction
   apps: any[]
   selectedCapabilities: SelectedCapability[]
-  onSelectedCapabilitiesChange: (capabilities: SelectedCapability[]) => void
+  onSelectedCapabilitiesChange?: (capabilities: SelectedCapability[]) => void // Made optional since we use provider
 }
 
 const categories = [
@@ -361,7 +349,7 @@ function TremorSelectItem({ children, ...props }: { children: React.ReactNode, [
       )}
       {...props}
     >
-      <SelectPrimitives.ItemText className="flex-1 truncate">
+      <SelectPrimitives.ItemText className="flex-1 truncate text-left">
         {children}
       </SelectPrimitives.ItemText>
       <SelectPrimitives.ItemIndicator>
@@ -566,12 +554,18 @@ export function DataTableDrawer({
   onOpenChange,
   data = defaultTransaction,
   apps,
-  selectedCapabilities,
-  onSelectedCapabilitiesChange,
+  selectedCapabilities, // This comes from the provider now
+  onSelectedCapabilitiesChange, // Optional fallback
 }: DataTableDrawerProps) {
   const status = expense_statuses.find(
     (item) => item.value === data?.expense_status,
   )
+  const { config } = useCapabilitiesConfig()
+  const { addCapability, removeCapability } = useCapabilityActions()
+  const lastPinnedToolId = useLastPinnedTool()
+  
+  // Use capabilities from provider, fallback to prop
+  const actualSelectedCapabilities = config.selectedCapabilities.length > 0 ? config.selectedCapabilities : selectedCapabilities
 
   // Starter templates (from legacy Build page)
   const starterTemplates = [
@@ -615,7 +609,21 @@ export function DataTableDrawer({
   const [copied, setCopied] = React.useState(false)
   const [capabilityStackIndices, setCapabilityStackIndices] = React.useState<{[key: string]: number}>({})
   const [githubMcpEnabled, setGithubMcpEnabled] = React.useState(true)
+  // BuildStatsCard persistent state
+  const [buildStatsCurrentAppIndex, setBuildStatsCurrentAppIndex] = React.useState(0)
+  const [buildStatsIsCollapsed, setBuildStatsIsCollapsed] = React.useState(false)
+  const [buildStatsCapabilitySearch, setBuildStatsCapabilitySearch] = React.useState('')
+  const [buildStatsAppSearchTerm, setBuildStatsAppSearchTerm] = React.useState('')
 
+  // Auto-switch BuildStatsCard to the app that was just pinned when drawer opens
+  React.useEffect(() => {
+    if (open && lastPinnedToolId && apps.length > 0) {
+      const toolIndex = apps.findIndex(app => app.id === lastPinnedToolId)
+      if (toolIndex !== -1 && toolIndex !== buildStatsCurrentAppIndex) {
+        setBuildStatsCurrentAppIndex(toolIndex)
+      }
+    }
+  }, [open, lastPinnedToolId, apps, buildStatsCurrentAppIndex])
 
   const handleCapabilitySelect = (capability: any, toolId: string, toolName: string, toolIcon?: string, toolColor?: string, toolRepo?: string) => {
     const compositeId = `${toolId}-${capability.capability.id}`
@@ -645,7 +653,7 @@ export function DataTableDrawer({
   }
 
   const handleCapabilityRemove = (capabilityId: string) => {
-    onSelectedCapabilitiesChange(selectedCapabilities.filter(f => f.id !== capabilityId))
+    removeCapability(capabilityId)
   }
 
   const handleCapabilityPin = (capabilityImpl: any, app: any) => {
@@ -667,19 +675,19 @@ export function DataTableDrawer({
       documentationUrl: capabilityImpl.documentationUrl
     }
 
-    const isAlreadySelected = selectedCapabilities.some(f => f.id === compositeId)
+    const isAlreadySelected = actualSelectedCapabilities.some(f => f.id === compositeId)
     if (isAlreadySelected) {
-      onSelectedCapabilitiesChange(selectedCapabilities.filter(f => f.id !== compositeId))
+      removeCapability(compositeId)
     } else {
-      onSelectedCapabilitiesChange([...selectedCapabilities, selectedCapability])
+      addCapability(selectedCapability)
     }
   }
 
   // Group capabilities by name and create stacks
   const groupedCapabilities = React.useMemo(() => {
     const groups: {[key: string]: SelectedCapability[]} = {}
-    if (selectedCapabilities) {
-      selectedCapabilities.forEach(capability => {
+    if (actualSelectedCapabilities) {
+      actualSelectedCapabilities.forEach(capability => {
         if (!groups[capability.name]) {
           groups[capability.name] = []
         }
@@ -687,7 +695,7 @@ export function DataTableDrawer({
       })
     }
     return groups
-  }, [selectedCapabilities])
+  }, [actualSelectedCapabilities])
 
   const navigateCapabilityStack = (capabilityName: string, direction: 'prev' | 'next') => {
     const stack = groupedCapabilities[capabilityName]
@@ -873,7 +881,15 @@ export function DataTableDrawer({
                         apps={apps}
                         onCapabilityPin={handleCapabilityPin}
                         onCapabilityUnpin={handleCapabilityRemove}
-                        selectedCapabilities={new Set(selectedCapabilities?.map(cap => cap.id) || [])}
+                        selectedCapabilities={new Set(actualSelectedCapabilities?.map(cap => cap.id) || [])}
+                        currentAppIndex={buildStatsCurrentAppIndex}
+                        onCurrentAppIndexChange={setBuildStatsCurrentAppIndex}
+                        isCollapsed={buildStatsIsCollapsed}
+                        onIsCollapsedChange={setBuildStatsIsCollapsed}
+                        capabilitySearch={buildStatsCapabilitySearch}
+                        onCapabilitySearchChange={setBuildStatsCapabilitySearch}
+                        appSearchTerm={buildStatsAppSearchTerm}
+                        onAppSearchTermChange={setBuildStatsAppSearchTerm}
                       />
 
                       {/* Selected Capabilities */}
@@ -1075,7 +1091,7 @@ export function DataTableDrawer({
 
                             // Group capabilities by tool
                             const capabilitiesByTool: {[toolName: string]: SelectedCapability[]} = {}
-                            selectedCapabilities.forEach(capability => {
+                            actualSelectedCapabilities.forEach(capability => {
                               if (!capabilitiesByTool[capability.toolName]) {
                                 capabilitiesByTool[capability.toolName] = []
                               }
@@ -1090,42 +1106,46 @@ export function DataTableDrawer({
                                     <Popover>
                                       <PopoverTrigger asChild>
                                         <button className="flex-shrink-0 inline-flex items-center gap-2 hover:bg-muted/50 rounded px-1 py-0.5 transition-colors focus:outline-none focus:ring-0">
-                                          {currentTemplate.id === 'openfront' ? (
-                                            <OpenfrontIcon className="w-5 h-5" />
-                                          ) : currentTemplate.id === 'openship' ? (
-                                            <OpenshipIcon className="w-5 h-5" />
-                                          ) : currentTemplate.id === 'byos' ? (
-                                            <LogoIcon className="w-5 h-5" />
-                                          ) : currentTemplate.id === '1' ? (
-                                            <NextKeystoneIcon className="w-5 h-5" />
-                                          ) : currentTemplate.id === 'opensource-builders' ? (
-                                            <LogoIcon className="w-5 h-5" />
-                                          ) : (
-                                            <LogoIcon className="w-5 h-5" />
-                                          )}
+                                          <div style={{ width: 20, height: 20 }}>
+                                            {currentTemplate.id === 'openfront' ? (
+                                              <OpenfrontIcon className="w-5 h-5" />
+                                            ) : currentTemplate.id === 'openship' ? (
+                                              <OpenshipIcon className="w-5 h-5" />
+                                            ) : currentTemplate.id === 'byos' ? (
+                                              <LogoIcon className="w-5 h-5" />
+                                            ) : currentTemplate.id === '1' ? (
+                                              <NextKeystoneIcon className="w-5 h-5" />
+                                            ) : currentTemplate.id === 'opensource-builders' ? (
+                                              <LogoIcon className="w-5 h-5" />
+                                            ) : (
+                                              <LogoIcon className="w-5 h-5" />
+                                            )}
+                                          </div>
                                         </button>
                                       </PopoverTrigger>
                                       <PopoverContent side="top" className="w-80">
                                         <div className="space-y-3">
                                           <div className="flex items-center gap-2">
-                                            {currentTemplate.id === 'openfront' ? (
-                                              <OpenfrontIcon className="w-4 h-4" />
-                                            ) : currentTemplate.id === 'openship' ? (
-                                              <OpenshipIcon className="w-4 h-4" />
-                                            ) : currentTemplate.id === 'byos' ? (
-                                              <LogoIcon className="w-4 h-4" />
-                                            ) : currentTemplate.id === '1' ? (
-                                              <NextKeystoneIcon className="w-4 h-4" />
-                                            ) : currentTemplate.id === 'opensource-builders' ? (
-                                              <LogoIcon className="w-4 h-4" />
-                                            ) : (
-                                              <LogoIcon className="w-4 h-4" />
-                                            )}
                                             <span className="text-sm font-medium">Starter Template</span>
                                           </div>
-                                          <div>
-                                            <p className="text-sm font-medium text-foreground">{currentTemplate.name}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">{currentTemplate.description}</p>
+                                          <div className="flex items-center gap-3">
+                                            {currentTemplate.id === 'openfront' ? (
+                                              <OpenfrontIcon className="w-6 h-6" />
+                                            ) : currentTemplate.id === 'openship' ? (
+                                              <OpenshipIcon className="w-6 h-6" />
+                                            ) : currentTemplate.id === 'byos' ? (
+                                              <LogoIcon className="w-6 h-6" />
+                                            ) : currentTemplate.id === '1' ? (
+                                              <NextKeystoneIcon className="w-6 h-6" />
+                                            ) : currentTemplate.id === 'opensource-builders' ? (
+                                              <LogoIcon className="w-6 h-6" />
+                                            ) : (
+                                              <LogoIcon className="w-6 h-6" />
+                                            )}
+                                            <div>
+                                              <p className="text-sm font-medium text-foreground">{currentTemplate.name}</p>
+                                              <p className="text-xs text-muted-foreground">{currentTemplate.description}</p>
+                                            </div>
                                           </div>
                                           {currentTemplate.info && (
                                             <p className="text-sm text-muted-foreground">{currentTemplate.info}</p>
@@ -1148,11 +1168,38 @@ export function DataTableDrawer({
                                     </Popover>
                                     <div className="flex-1">
                                       {currentTemplate.id === '1' ? (
-                                        <>
-                                          Please git clone this repo: <code className="bg-muted px-1 rounded text-xs">git clone https://github.com/junaid33/next-keystone-starter.git</code>
-                                          <br /><br />
-                                          Then read the README.md and other relevant markdown files to get a general sense of how this full-stack Next.js application works. It's a Next.js application with a Keystone admin dashboard built-in, a GraphQL API, role-based permissions, and is designed with feature slices architecture. Review the /features directory structure and the project's architecture documentation.
-                                        </>
+                                        <Collapsible>
+                                          <div className="flex items-center justify-between">
+                                            {currentTemplate.name}
+                                            <CollapsibleTrigger className="text-muted-foreground hover:text-foreground transition-colors p-1">
+                                              <ChevronDown className="h-4 w-4" />
+                                            </CollapsibleTrigger>
+                                          </div>
+                                          
+                                          <CollapsibleContent className="mt-3">
+                                            {/* Git Clone capability-style card */}
+                                            <div className="w-full cursor-pointer transition duration-100 ease-linear rounded-[10px] bg-card text-foreground shadow-xs ring-1 ring-inset ring-border hover:bg-muted/50 p-4">
+                                              {/* Header with badge */}
+                                              <div className="inline-flex items-center mb-3">
+                                                <span className="inline-flex items-center rounded-md bg-muted shadow-xs ring-1 ring-inset ring-border gap-1.5 px-2 py-0.5">
+                                                  <span className="inline-block size-2 shrink-0 rounded-full bg-primary outline outline-3 -outline-offset-1 outline-primary/20" />
+                                                  Understanding the Starter
+                                                </span>
+                                              </div>
+                                              
+                                              {/* Content */}
+                                              <div className="space-y-3 text-sm">
+                                                <div className="text-muted-foreground">
+                                                  Please git clone this repo: <code className="bg-muted px-1 rounded text-xs">git clone https://github.com/junaid33/next-keystone-starter.git</code>
+                                                </div>
+                                                
+                                                <div className="text-muted-foreground">
+                                                  Then read the README.md and other relevant markdown files to get a general sense of how this full-stack Next.js application works. It's a Next.js application with a Keystone admin dashboard built-in, a GraphQL API, role-based permissions, and is designed with feature slices architecture. Review the /features directory structure and the project's architecture documentation.
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </CollapsibleContent>
+                                        </Collapsible>
                                       ) : (
                                         <>
                                           Use the {currentTemplate.name} as your starting point. This template provides {currentTemplate.description.toLowerCase()} and will serve as the foundation for your application.
@@ -1234,16 +1281,29 @@ export function DataTableDrawer({
                                         </PopoverContent>
                                       </Popover>
                                       <div className="flex-1">
-                                        From {toolName}, implement the following capabilities:
-                                        
-                                        {capabilities.map((capability, index) => (
+                                        <Collapsible>
+                                          <div className="flex items-center justify-between">
+                                            From {toolName}, implement the following capabilities:
+                                            <CollapsibleTrigger className="text-muted-foreground hover:text-foreground transition-colors p-1">
+                                              <ChevronDown className="h-4 w-4" />
+                                            </CollapsibleTrigger>
+                                          </div>
+                                          
+                                          <CollapsibleContent>
+                                            {capabilities.map((capability, index) => (
                                           <div key={capability.id} className="mt-3">
                                             {/* Everything inside one card */}
                                             <div className="w-full cursor-pointer transition duration-100 ease-linear rounded-[10px] bg-card text-foreground shadow-xs ring-1 ring-inset ring-border hover:bg-muted/50 p-4">
                                               {/* Header with badge */}
                                               <div className="inline-flex items-center mb-3">
-                                                <span className="inline-flex items-center rounded-md bg-muted shadow-xs ring-1 ring-inset ring-border gap-1.5 px-2 py-0.5">
-                                                  <span className="inline-block size-2 shrink-0 rounded-full bg-primary outline outline-3 -outline-offset-1 outline-primary/20" />
+                                                <span className="inline-flex items-center rounded-md bg-muted shadow-xs ring-1 ring-inset ring-border gap-2 px-2 py-0.5">
+                                                  <span 
+                                                    className="inline-block size-2 shrink-0 rounded-full outline outline-3 -outline-offset-1"
+                                                    style={{ 
+                                                      backgroundColor: capability.toolColor || '#6366f1',
+                                                      outlineColor: `${capability.toolColor || '#6366f1'}30`
+                                                    }}
+                                                  />
                                                   {capability.name}
                                                 </span>
                                               </div>
@@ -1287,6 +1347,8 @@ export function DataTableDrawer({
                                             </div>
                                           </div>
                                         ))}
+                                          </CollapsibleContent>
+                                        </Collapsible>
                                       </div>
                                     </div>
                                   )

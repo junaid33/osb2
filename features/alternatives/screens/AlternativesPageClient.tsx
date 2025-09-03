@@ -6,6 +6,7 @@ import { EventsSection } from '../components/EventsSection'
 import NoiseBackground from '../components/NoiseBackground'
 import StatsCard from '../components/StatsCard'
 import { DataTableDrawer } from '@/components/ui/DataTableDrawer'
+import { useSelectedCapabilities, useCapabilityActions } from '@/hooks/use-capabilities-config'
 import type { ProprietaryApp } from '../actions/getAlternatives'
 import { request } from 'graphql-request'
 
@@ -46,10 +47,11 @@ const GET_ALL_OPEN_SOURCE_APPS = `
   }
 `;
 
-export function AlternativesPageClient({ proprietaryApp, slug }: AlternativesPageClientProps) {
+function AlternativesContent({ proprietaryApp, slug }: AlternativesPageClientProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [apps, setApps] = useState([])
-  const [selectedCapabilities, setSelectedCapabilities] = useState([])
+  const selectedCapabilities = useSelectedCapabilities()
+  const { addCapability, removeCapability } = useCapabilityActions()
 
   useEffect(() => {
     const loadApps = async () => {
@@ -63,24 +65,10 @@ export function AlternativesPageClient({ proprietaryApp, slug }: AlternativesPag
     loadApps();
   }, []);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('pinnedCapabilities');
-      if (saved) {
-        setSelectedCapabilities(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error('Error loading capabilities:', error);
-    }
-  }, []);
-
   const handleSelectedCapabilitiesChange = (capabilities) => {
-    setSelectedCapabilities(capabilities);
-    try {
-      localStorage.setItem('pinnedCapabilities', JSON.stringify(capabilities));
-    } catch (error) {
-      console.error('Error saving capabilities:', error);
-    }
+    // This is called when capabilities are changed from the BuildStatsCard - but we use the provider now
+    // The provider will automatically handle the sync through the context
+    console.log('Capability change handled by provider', capabilities)
   };
 
   return (
@@ -97,7 +85,7 @@ export function AlternativesPageClient({ proprietaryApp, slug }: AlternativesPag
         <HeroSection 
           proprietaryApp={proprietaryApp} 
         />
-        <div className="container mx-auto px-4 md:px-6 py-8 flex flex-col md:flex-row gap-8 max-w-5xl">
+        <div className="mx-auto px-6 md:px-12 py-8 flex flex-col md:flex-row gap-8 max-w-5xl">
           <div className="md:w-2/3">
             <EventsSection 
               alternatives={proprietaryApp.openSourceAlternatives}
@@ -123,4 +111,8 @@ export function AlternativesPageClient({ proprietaryApp, slug }: AlternativesPag
       />
     </div>
   )
+}
+
+export function AlternativesPageClient({ proprietaryApp, slug }: AlternativesPageClientProps) {
+  return <AlternativesContent proprietaryApp={proprietaryApp} slug={slug} />
 }
