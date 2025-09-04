@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 import { Logo } from "@/features/dashboard/components/Logo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { NavbarSearch } from "@/features/search/components/NavbarSearch";
+import { NavbarSearch } from "@/features/public-site/components/search/NavbarSearch";
 import { DataTableDrawer } from "@/components/ui/DataTableDrawer";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";

@@ -146,20 +146,10 @@ export default function BuildStatsCard({
   appSearchTerm: controlledAppSearchTerm,
   onAppSearchTermChange
 }: BuildStatsCardProps) {
-  // Use controlled state if provided, otherwise fall back to internal state
-  const [internalCurrentAppIndex, setInternalCurrentAppIndex] = useState(0);
-  const [internalIsCollapsed, setInternalIsCollapsed] = useState(false);
-  const [internalCapabilitySearch, setInternalCapabilitySearch] = useState('');
-  const [internalAppSearchTerm, setInternalAppSearchTerm] = useState('');
-  
-  const currentAppIndex = controlledCurrentAppIndex ?? internalCurrentAppIndex;
-  const setCurrentAppIndex = onCurrentAppIndexChange ?? setInternalCurrentAppIndex;
-  const isCollapsed = controlledIsCollapsed ?? internalIsCollapsed;
-  const setIsCollapsed = onIsCollapsedChange ?? setInternalIsCollapsed;
-  const capabilitySearch = controlledCapabilitySearch ?? internalCapabilitySearch;
-  const setCapabilitySearch = onCapabilitySearchChange ?? setInternalCapabilitySearch;
-  const appSearchTerm = controlledAppSearchTerm ?? internalAppSearchTerm;
-  const setAppSearchTerm = onAppSearchTermChange ?? setInternalAppSearchTerm;
+  const [currentAppIndex, setCurrentAppIndex] = useState(0);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [capabilitySearch, setCapabilitySearch] = useState('');
+  const [appSearchTerm, setAppSearchTerm] = useState('');
 
   const [pinnedCapabilities, setPinnedCapabilities] = useState<Set<string>>(new Set());
   const [hoveredCapability, setHoveredCapability] = useState<string | null>(null);
@@ -175,7 +165,6 @@ export default function BuildStatsCard({
       )
     : apps;
 
-  // Sync pinned capabilities
   const currentApp = apps[currentAppIndex];
   if (externalSelectedCapabilities && currentApp && apps.length > 0) {
     const newPinnedCapabilities = new Set<string>();
@@ -216,9 +205,11 @@ export default function BuildStatsCard({
     }
   };
 
-  const selectApp = (index: number) => {
-    const originalIndex = apps.findIndex(a => a.id === apps[index].id);
-    handleAppChange(originalIndex);
+  const selectApp = (app: OpenSourceApp) => {
+    const originalIndex = apps.findIndex(a => a.id === app.id);
+    if (originalIndex !== -1) {
+      handleAppChange(originalIndex);
+    }
     setIsAppsDropdownOpen(false);
     setAppSearchTerm('');
   };
@@ -354,7 +345,7 @@ export default function BuildStatsCard({
                         filteredApps.map((app, index) => (
                           <button
                             key={app.id}
-                            onClick={() => selectApp(index)}
+                            onClick={() => selectApp(app)}
                             className="w-full flex items-center gap-3 p-2 rounded-md text-left hover:bg-muted/50 transition-colors"
                           >
                             <ToolIcon
@@ -480,7 +471,7 @@ export default function BuildStatsCard({
                 
                 return (
                   <div
-                    key={`${currentApp.id}-${item.name}`}
+                    key={`${currentApp.id}-${item.name}-${item.category}`}
                     onClick={showPin ? (e) => {
                       e.preventDefault()
                       handlePinCapability(item)

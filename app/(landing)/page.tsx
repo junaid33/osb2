@@ -1,5 +1,5 @@
-import { LandingPage } from "@/features/landing/screens/LandingPage";
+import { LandingPage } from "@/features/public-site/screens/LandingPage";
 
-export default async function HomePage() {
+export default function HomePage() {
   return <LandingPage />
 }

@@ -609,6 +609,8 @@ export function DataTableDrawer({
   const [copied, setCopied] = React.useState(false)
   const [capabilityStackIndices, setCapabilityStackIndices] = React.useState<{[key: string]: number}>({})
   const [githubMcpEnabled, setGithubMcpEnabled] = React.useState(true)
+  // Manual tabs state
+  const [activeView, setActiveView] = React.useState<'builder' | 'full-prompt'>('builder')
   // BuildStatsCard persistent state
   const [buildStatsCurrentAppIndex, setBuildStatsCurrentAppIndex] = React.useState(0)
   const [buildStatsIsCollapsed, setBuildStatsIsCollapsed] = React.useState(false)
@@ -775,16 +777,36 @@ export function DataTableDrawer({
 
               {/* Body */}
               <div className="flex-1 py-4 -mx-6 overflow-y-scroll">
-                <TremorTabs defaultValue="builder">
-                  <TremorTabsList>
-                    <TremorTabsTrigger value="builder" className="px-4">
+                <div className="px-6">
+                  <div className="flex items-center justify-start border-b border-gray-200 dark:border-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => setActiveView('builder')}
+                      className={cn(
+                        "-mb-px px-4 pb-3 text-sm font-medium border-b-2",
+                        activeView === 'builder'
+                          ? "border-gray-900 text-gray-900 dark:border-gray-50 dark:text-gray-50"
+                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-500 dark:hover:text-gray-400 dark:hover:border-gray-400"
+                      )}
+                    >
                       Builder
-                    </TremorTabsTrigger>
-                    <TremorTabsTrigger value="full-prompt" className="px-4">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveView('full-prompt')}
+                      className={cn(
+                        "-mb-px px-4 pb-3 text-sm font-medium border-b-2",
+                        activeView === 'full-prompt'
+                          ? "border-gray-900 text-gray-900 dark:border-gray-50 dark:text-gray-50"
+                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-500 dark:hover:text-gray-400 dark:hover:border-gray-400"
+                      )}
+                    >
                       Full Prompt
-                    </TremorTabsTrigger>
-                  </TremorTabsList>
-                  <TremorTabsContent value="builder" className="space-y-5 px-6 mt-4">
+                    </button>
+                  </div>
+                </div>
+                <div className="px-6 mt-4">
+                  <div className={cn("space-y-5", activeView === 'builder' ? "block" : "hidden")}>                
                     {/* Choose Starter (ported) */}
                     <div className="space-y-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Choose Starter</p>
@@ -1015,8 +1037,8 @@ export function DataTableDrawer({
                         </div>
                       )}
                     </div>
-                  </TremorTabsContent>
-                  <TremorTabsContent value="full-prompt" className="space-y-6 px-6 mt-4">
+                  </div>
+                  <div className={cn("space-y-6", activeView === 'full-prompt' ? "block" : "hidden")}>                
                     {/* Available MCP Servers */}
                     <div className="space-y-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Available MCP Servers</p>
@@ -1266,7 +1288,7 @@ export function DataTableDrawer({
                                             </div>
                                             <div className="space-y-2">
                                               {capabilities.map(capability => (
-                                                <div key={capability.id} className="p-2 rounded border bg-muted/30">
+                                                <div key={`${toolName}-${capability.id}`} className="p-2 rounded border bg-muted/30">
                                                   <p className="text-sm font-medium">{capability.name}</p>
                                                   {capability.description && (
                                                     <p className="text-xs text-muted-foreground mt-1">{capability.description}</p>
@@ -1291,7 +1313,7 @@ export function DataTableDrawer({
                                           
                                           <CollapsibleContent>
                                             {capabilities.map((capability, index) => (
-                                          <div key={capability.id} className="mt-3">
+                                          <div key={`${toolName}-${capability.id}-${index}`} className="mt-3">
                                             {/* Everything inside one card */}
                                             <div className="w-full cursor-pointer transition duration-100 ease-linear rounded-[10px] bg-card text-foreground shadow-xs ring-1 ring-inset ring-border hover:bg-muted/50 p-4">
                                               {/* Header with badge */}
@@ -1359,8 +1381,8 @@ export function DataTableDrawer({
                         </div>
                       </div>
                     </div>
-                  </TremorTabsContent>
-                </TremorTabs>
+                  </div>
+                </div>
               </div>
 
               {/* Footer */}
