@@ -50,14 +50,20 @@ export function NavbarSearch() {
     setIsOpen(true)
   }
 
-  const handleToolClick = (slug: string) => {
+  const handleProprietaryToolClick = (slug: string) => {
     router.push(`/alternatives/${slug}`)
     setIsOpen(false)
     setSearch('')
   }
 
-  const handleFeatureClick = (slug: string) => {
-    router.push(`/features/${slug}`)
+  const handleOpenSourceToolClick = (slug: string) => {
+    router.push(`/os-alternatives/${slug}`)
+    setIsOpen(false)
+    setSearch('')
+  }
+
+  const handleCapabilityClick = (slug: string) => {
+    router.push(`/capabilities/${slug}`)
     setIsOpen(false)
     setSearch('')
   }
@@ -122,7 +128,7 @@ export function NavbarSearch() {
                   {results.openSourceApplications.map((app) => (
                     <button
                       key={app.id}
-                      onClick={() => handleToolClick(app.slug)}
+                      onClick={() => handleOpenSourceToolClick(app.slug)}
                       className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
                     >
                       <div className="flex h-8 w-8 items-center justify-center">
@@ -158,7 +164,7 @@ export function NavbarSearch() {
                   {results.proprietaryApplications.map((app) => (
                     <button
                       key={app.id}
-                      onClick={() => handleToolClick(app.slug)}
+                      onClick={() => handleProprietaryToolClick(app.slug)}
                       className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
                     >
                       <div className="flex h-8 w-8 items-center justify-center">
@@ -194,7 +200,7 @@ export function NavbarSearch() {
                   {results.capabilities.map((capability) => (
                     <button
                       key={capability.id}
-                      onClick={() => handleFeatureClick(capability.slug)}
+                      onClick={() => handleCapabilityClick(capability.slug)}
                       className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
                     >
                       <div className="flex h-8 w-8 items-center justify-center">

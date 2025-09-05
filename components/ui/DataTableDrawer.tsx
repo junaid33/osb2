@@ -609,8 +609,6 @@ export function DataTableDrawer({
   const [copied, setCopied] = React.useState(false)
   const [capabilityStackIndices, setCapabilityStackIndices] = React.useState<{[key: string]: number}>({})
   const [githubMcpEnabled, setGithubMcpEnabled] = React.useState(true)
-  // Manual tabs state
-  const [activeView, setActiveView] = React.useState<'builder' | 'full-prompt'>('builder')
   // BuildStatsCard persistent state
   const [buildStatsCurrentAppIndex, setBuildStatsCurrentAppIndex] = React.useState(0)
   const [buildStatsIsCollapsed, setBuildStatsIsCollapsed] = React.useState(false)
@@ -777,36 +775,16 @@ export function DataTableDrawer({
 
               {/* Body */}
               <div className="flex-1 py-4 -mx-6 overflow-y-scroll">
-                <div className="px-6">
-                  <div className="flex items-center justify-start border-b border-gray-200 dark:border-gray-800">
-                    <button
-                      type="button"
-                      onClick={() => setActiveView('builder')}
-                      className={cn(
-                        "-mb-px px-4 pb-3 text-sm font-medium border-b-2",
-                        activeView === 'builder'
-                          ? "border-gray-900 text-gray-900 dark:border-gray-50 dark:text-gray-50"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-500 dark:hover:text-gray-400 dark:hover:border-gray-400"
-                      )}
-                    >
+                <TremorTabs defaultValue="builder">
+                  <TremorTabsList>
+                    <TremorTabsTrigger value="builder" className="px-4">
                       Builder
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveView('full-prompt')}
-                      className={cn(
-                        "-mb-px px-4 pb-3 text-sm font-medium border-b-2",
-                        activeView === 'full-prompt'
-                          ? "border-gray-900 text-gray-900 dark:border-gray-50 dark:text-gray-50"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-500 dark:hover:text-gray-400 dark:hover:border-gray-400"
-                      )}
-                    >
+                    </TremorTabsTrigger>
+                    <TremorTabsTrigger value="full-prompt" className="px-4">
                       Full Prompt
-                    </button>
-                  </div>
-                </div>
-                <div className="px-6 mt-4">
-                  <div className={cn("space-y-5", activeView === 'builder' ? "block" : "hidden")}>                
+                    </TremorTabsTrigger>
+                  </TremorTabsList>
+                  <TremorTabsContent value="builder" className="space-y-5 px-6 mt-4">
                     {/* Choose Starter (ported) */}
                     <div className="space-y-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Choose Starter</p>
@@ -1037,8 +1015,8 @@ export function DataTableDrawer({
                         </div>
                       )}
                     </div>
-                  </div>
-                  <div className={cn("space-y-6", activeView === 'full-prompt' ? "block" : "hidden")}>                
+                  </TremorTabsContent>
+                  <TremorTabsContent value="full-prompt" className="space-y-6 px-6 mt-4">
                     {/* Available MCP Servers */}
                     <div className="space-y-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Available MCP Servers</p>
@@ -1381,8 +1359,8 @@ export function DataTableDrawer({
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </TremorTabsContent>
+                </TremorTabs>
               </div>
 
               {/* Footer */}

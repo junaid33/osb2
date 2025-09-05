@@ -164,6 +164,8 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
 
+  // TODO: Consider moving filtering to GraphQL where clause or implementing search index (FlexSearch)
+  // Currently doing client-side filtering - could be improved with proper search index like in OpenFront
   // Debounced search for alternatives
   const performAlternativeSearch = useCallback(
     debounce((search: string, allAlternatives: OpenSourceAlternative[]) => {
@@ -213,8 +215,8 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
   
   // Transform capabilities data for current alternative
   const capabilityData = capabilities.length > 0 ? capabilities.map(cap => {
-    const capabilityImpl = currentAlternative.capabilities.find(osc => osc.capability.id === cap.id);
-    const hasCapability = !!capabilityImpl;
+    const capabilityImpl = currentAlternative.capabilities?.find(osc => osc.capability.id === cap.id);
+    const hasCapability = currentAlternative.capabilities ? !!capabilityImpl : true; // For capabilities pages, always show as having the capability
     return {
       name: cap.name,
       category: cap.category || 'other',
@@ -502,6 +504,8 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
           {/* Capabilities list with scroll */}
           <div className="space-y-3 max-h-64 overflow-y-auto">
             {(() => {
+              // TODO: Consider implementing search index (FlexSearch) for better capability search
+              // Currently doing simple client-side filtering
               const filteredCapabilities = capabilityData.filter((item) => {
                 if (!capabilitySearch.trim()) return true;
                 return item.name.toLowerCase().includes(capabilitySearch.toLowerCase());
@@ -556,15 +560,31 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
                         <div className="flex items-center gap-1 text-[11px] font-medium">
                           {item.githubPath && currentAlternative.repositoryUrl && (
                             <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(`${currentAlternative.repositoryUrl}/blob/main/${item.githubPath}`, '_blank');
-                                }}
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                CODE
-                              </button>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-muted-foreground hover:text-foreground"
+                                  >
+                                    CODE
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80 p-3" side="bottom" align="start">
+                                  <div className="space-y-2">
+                                    <div className="text-sm font-semibold">
+                                      {currentAlternative.name}'s {item.name.toLowerCase()} code
+                                    </div>
+                                    <div className="text-xs text-muted-foreground space-y-1">
+                                      <div>
+                                        <span className="font-medium">Repository:</span> {currentAlternative.repositoryUrl?.replace('https://github.com/', '')}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Path:</span> {item.githubPath}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
                               <span className="text-muted-foreground">·</span>
                             </>
                           )}

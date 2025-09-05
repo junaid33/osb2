@@ -157,6 +157,8 @@ export default function BuildStatsCard({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const appSearchRef = useRef<HTMLInputElement>(null);
 
+  // TODO: Consider moving filtering to GraphQL where clause or implementing search index (FlexSearch)
+  // Currently doing client-side filtering - could be improved with proper search index like in OpenFront
   // Filter apps based on search
   const filteredApps = appSearchTerm.trim() 
     ? apps.filter(app =>
@@ -439,6 +441,8 @@ export default function BuildStatsCard({
           {/* Capabilities list with scroll */}
           <div className="space-y-3 max-h-64 overflow-y-auto">
             {(() => {
+              // TODO: Consider implementing search index (FlexSearch) for better capability search
+              // Currently doing simple client-side filtering
               const filteredCapabilities = capabilityData.filter((item) => {
                 if (!capabilitySearch.trim()) return true;
                 return item.name.toLowerCase().includes(capabilitySearch.toLowerCase());

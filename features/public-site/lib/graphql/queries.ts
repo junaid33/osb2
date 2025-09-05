@@ -156,3 +156,129 @@ export const MULTI_MODEL_SEARCH = gql`
     }
   }
 `;
+
+// OS alternatives query - get an open source app and other alternatives to the same proprietary app
+export const GET_OS_ALTERNATIVES = gql`
+  query GetOsAlternatives($slug: String!) {
+    openSourceApplications(where: { slug: { equals: $slug } }) {
+      id
+      name
+      slug
+      description
+      githubStars
+      githubForks
+      license
+      websiteUrl
+      repositoryUrl
+      simpleIconSlug
+      simpleIconColor
+      capabilities {
+        capability {
+          id
+          name
+          slug
+          description
+          category
+          complexity
+        }
+        implementationNotes
+        githubPath
+        documentationUrl
+        implementationComplexity
+        isActive
+      }
+      primaryAlternativeTo {
+        id
+        name
+        slug
+        description
+        websiteUrl
+        simpleIconSlug
+        simpleIconColor
+        capabilities {
+          capability {
+            id
+            name
+            slug
+            description
+            category
+            complexity
+          }
+        }
+        openSourceAlternatives {
+          id
+          name
+          slug
+          description
+          githubStars
+          githubForks
+          license
+          websiteUrl
+          repositoryUrl
+          simpleIconSlug
+          simpleIconColor
+          capabilities {
+            capability {
+              id
+              name
+              slug
+              description
+              category
+              complexity
+            }
+            implementationNotes
+            githubPath
+            documentationUrl
+            implementationComplexity
+            isActive
+          }
+        }
+      }
+    }
+  }
+`;
+
+// Capability applications query - get all apps that have a specific capability
+export const GET_CAPABILITY_APPLICATIONS = gql`
+  query GetCapabilityApplications($slug: String!) {
+    capabilities(where: { slug: { equals: $slug } }) {
+      id
+      name
+      slug
+      description
+      category
+      complexity
+      proprietaryApplications {
+        proprietaryApplication {
+          id
+          name
+          slug
+          description
+          websiteUrl
+          simpleIconSlug
+          simpleIconColor
+        }
+      }
+      openSourceApplications {
+        openSourceApplication {
+          id
+          name
+          slug
+          description
+          githubStars
+          githubForks
+          license
+          websiteUrl
+          repositoryUrl
+          simpleIconSlug
+          simpleIconColor
+        }
+        implementationNotes
+        githubPath
+        documentationUrl
+        implementationComplexity
+        isActive
+      }
+    }
+  }
+`;

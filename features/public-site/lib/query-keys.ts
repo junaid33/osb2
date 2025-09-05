@@ -23,6 +23,12 @@ export const queryKeys = {
     detail: (slug: string) => [...queryKeys.openSourceApps.details(), slug] as const,
   },
 
+  // OS alternatives - used for "osApps" in query keys for consistency
+  osApps: {
+    all: ['osApps'] as const,
+    alternatives: (slug: string) => [...queryKeys.osApps.all, 'alternatives', slug] as const,
+  },
+
   // Search
   search: {
     all: ['search'] as const,
@@ -34,6 +40,7 @@ export const queryKeys = {
     all: ['capabilities'] as const,
     lists: () => [...queryKeys.capabilities.all, 'list'] as const,
     search: (query: string) => [...queryKeys.capabilities.all, 'search', query] as const,
+    applications: (slug: string) => [...queryKeys.capabilities.all, 'applications', slug] as const,
   },
 } as const;
 
