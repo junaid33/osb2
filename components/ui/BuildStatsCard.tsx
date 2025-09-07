@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
@@ -12,8 +12,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import debounce from 'lodash.debounce';
 import ToolIcon from '@/components/ToolIcon';
+import { useBuildStatsCardState, useCapabilityActions } from '@/hooks/use-capabilities-config';
 
 
 interface Capability {
@@ -62,18 +62,7 @@ interface OpenSourceApp {
 
 interface BuildStatsCardProps {
   apps: OpenSourceApp[];
-  onCapabilityPin?: (capability: any, app: OpenSourceApp) => void;
-  onCapabilityUnpin?: (capabilityId: string) => void;
   selectedCapabilities?: Set<string>;
-  // Controlled state props for persistence across tab switches
-  currentAppIndex?: number;
-  onCurrentAppIndexChange?: (index: number) => void;
-  isCollapsed?: boolean;
-  onIsCollapsedChange?: (collapsed: boolean) => void;
-  capabilitySearch?: string;
-  onCapabilitySearchChange?: (search: string) => void;
-  appSearchTerm?: string;
-  onAppSearchTermChange?: (term: string) => void;
 }
 
 const chartConfig = {
@@ -133,29 +122,38 @@ function DonutChart({ percentage, compatible }: { percentage: number; compatible
 
 export default function BuildStatsCard({ 
   apps, 
-  onCapabilityPin, 
-  onCapabilityUnpin, 
-  selectedCapabilities: externalSelectedCapabilities,
-  // Controlled state props
-  currentAppIndex: controlledCurrentAppIndex,
-  onCurrentAppIndexChange,
-  isCollapsed: controlledIsCollapsed,
-  onIsCollapsedChange,
-  capabilitySearch: controlledCapabilitySearch,
-  onCapabilitySearchChange,
-  appSearchTerm: controlledAppSearchTerm,
-  onAppSearchTermChange
+  selectedCapabilities: externalSelectedCapabilities
 }: BuildStatsCardProps) {
-  const [currentAppIndex, setCurrentAppIndex] = useState(0);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [capabilitySearch, setCapabilitySearch] = useState('');
-  const [appSearchTerm, setAppSearchTerm] = useState('');
-
-  const [pinnedCapabilities, setPinnedCapabilities] = useState<Set<string>>(new Set());
-  const [hoveredCapability, setHoveredCapability] = useState<string | null>(null);
-  const [isAppsDropdownOpen, setIsAppsDropdownOpen] = useState(false);
+  // Get all state from global context
+  const { buildStatsCard, updateBuildStatsCard } = useBuildStatsCardState();
+  const { addCapability, removeCapability } = useCapabilityActions();
+  
+  const { currentAppIndex, isCollapsed, capabilitySearch, appSearchTerm, isAppsDropdownOpen } = buildStatsCard;
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
   const appSearchRef = useRef<HTMLInputElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        updateBuildStatsCard({ isAppsDropdownOpen: false })
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [updateBuildStatsCard])
+
+  // Close dropdown on escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        updateBuildStatsCard({ isAppsDropdownOpen: false })
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [updateBuildStatsCard])
 
   // TODO: Consider moving filtering to GraphQL where clause or implementing search index (FlexSearch)
   // Currently doing client-side filtering - could be improved with proper search index like in OpenFront
@@ -167,25 +165,20 @@ export default function BuildStatsCard({
       )
     : apps;
 
-  const currentApp = apps[currentAppIndex];
-  if (externalSelectedCapabilities && currentApp && apps.length > 0) {
-    const newPinnedCapabilities = new Set<string>();
-    currentApp.capabilities.forEach(capImpl => {
-      const compositeId = `${currentApp.id}-${capImpl.capability.id}`;
-      if (externalSelectedCapabilities.has(compositeId)) {
-        newPinnedCapabilities.add(capImpl.capability.name);
-      }
-    });
-    if (JSON.stringify([...pinnedCapabilities]) !== JSON.stringify([...newPinnedCapabilities])) {
-      setPinnedCapabilities(newPinnedCapabilities);
-    }
+  // Ensure currentAppIndex is within bounds
+  const safeCurrentAppIndex = Math.max(0, Math.min(currentAppIndex, apps.length - 1));
+  const currentApp = apps[safeCurrentAppIndex];
+  
+  // If the index changed due to bounds checking, update it
+  if (safeCurrentAppIndex !== currentAppIndex) {
+    updateBuildStatsCard({ currentAppIndex: safeCurrentAppIndex });
   }
 
   const handleAppChange = (newIndex: number) => {
-    setCurrentAppIndex(newIndex);
-    setPinnedCapabilities(new Set());
-    setHoveredCapability(null);
-    setCapabilitySearch('');
+    updateBuildStatsCard({ 
+      currentAppIndex: newIndex, 
+      capabilitySearch: '' 
+    });
   };
 
   const nextApp = () => {
@@ -199,11 +192,16 @@ export default function BuildStatsCard({
   };
 
   const toggleAppsDropdown = () => {
-    setIsAppsDropdownOpen(!isAppsDropdownOpen);
-    if (!isAppsDropdownOpen) {
+    const newIsOpen = !isAppsDropdownOpen;
+    updateBuildStatsCard({ isAppsDropdownOpen: newIsOpen });
+    
+    // Focus search input when dropdown opens
+    if (newIsOpen) {
       setTimeout(() => {
         appSearchRef.current?.focus();
-      }, 100);
+      }, 0);
+    } else {
+      updateBuildStatsCard({ appSearchTerm: '' });
     }
   };
 
@@ -212,8 +210,10 @@ export default function BuildStatsCard({
     if (originalIndex !== -1) {
       handleAppChange(originalIndex);
     }
-    setIsAppsDropdownOpen(false);
-    setAppSearchTerm('');
+    updateBuildStatsCard({ 
+      appSearchTerm: '',
+      isAppsDropdownOpen: false 
+    });
   };
 
   const handlePinCapability = (capability: CapabilityItem) => {
@@ -227,15 +227,27 @@ export default function BuildStatsCard({
     if (!capabilityImpl) return;
 
     const compositeId = `${currentApp.id}-${capabilityImpl.capability.id}`;
+    const selectedCapability = {
+      id: compositeId,
+      capabilityId: capabilityImpl.capability.id,
+      toolId: currentApp.id,
+      name: capabilityImpl.capability.name,
+      description: capabilityImpl.capability.description,
+      category: capabilityImpl.capability.category,
+      complexity: capabilityImpl.capability.complexity,
+      toolName: currentApp.name,
+      toolIcon: currentApp.simpleIconSlug,
+      toolColor: currentApp.simpleIconColor,
+      toolRepo: currentApp.repositoryUrl,
+      implementationNotes: capabilityImpl.implementationNotes,
+      githubPath: capabilityImpl.githubPath,
+      documentationUrl: capabilityImpl.documentationUrl
+    };
     
-    if (pinnedCapabilities.has(capability.name)) {
-      if (onCapabilityUnpin) {
-        onCapabilityUnpin(compositeId);
-      }
+    if (externalSelectedCapabilities?.has(compositeId)) {
+      removeCapability(compositeId);
     } else {
-      if (onCapabilityPin) {
-        onCapabilityPin(capabilityImpl, currentApp);
-      }
+      addCapability(selectedCapability, apps);
     }
   };
 
@@ -311,7 +323,7 @@ export default function BuildStatsCard({
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      setIsCollapsed(!isCollapsed)
+                      updateBuildStatsCard({ isCollapsed: !isCollapsed })
                     }}
                     className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
@@ -337,7 +349,7 @@ export default function BuildStatsCard({
                         placeholder="Search applications..."
                         className="pl-9 pr-3 h-9 text-sm"
                         value={appSearchTerm}
-                        onChange={(e) => setAppSearchTerm(e.target.value)}
+                        onChange={(e) => updateBuildStatsCard({ appSearchTerm: e.target.value })}
                       />
                     </div>
                     
@@ -434,7 +446,7 @@ export default function BuildStatsCard({
               placeholder="Search capabilities..."
               className="pl-9 pr-3 h-9 text-sm"
               value={capabilitySearch}
-              onChange={(e) => setCapabilitySearch(e.target.value)}
+              onChange={(e) => updateBuildStatsCard({ capabilitySearch: e.target.value })}
             />
           </div>
           
@@ -459,8 +471,10 @@ export default function BuildStatsCard({
               return filteredCapabilities
                 .sort((a, b) => {
                   // Sort by pinned first, then by compatible status
-                  const aPinned = pinnedCapabilities.has(a.name);
-                  const bPinned = pinnedCapabilities.has(b.name);
+                  const aCompositeId = `${currentApp.id}-${currentApp.capabilities.find(c => c.capability.name === a.name)?.capability.id}`;
+                  const bCompositeId = `${currentApp.id}-${currentApp.capabilities.find(c => c.capability.name === b.name)?.capability.id}`;
+                  const aPinned = externalSelectedCapabilities?.has(aCompositeId) || false;
+                  const bPinned = externalSelectedCapabilities?.has(bCompositeId) || false;
                   if (aPinned && !bPinned) return -1;
                   if (!aPinned && bPinned) return 1;
                   // Then sort compatible capabilities first within each group
@@ -469,8 +483,9 @@ export default function BuildStatsCard({
                   return 0;
                 })
                 .map((item) => {
-                const isPinned = pinnedCapabilities.has(item.name);
-                const isHovered = hoveredCapability === item.name;
+                const capabilityImpl = currentApp.capabilities.find(c => c.capability.name === item.name);
+                const compositeId = capabilityImpl ? `${currentApp.id}-${capabilityImpl.capability.id}` : '';
+                const isPinned = externalSelectedCapabilities?.has(compositeId) || false;
                 const showPin = item.compatible; // Only show pin for compatible capabilities
                 
                 return (
@@ -480,9 +495,7 @@ export default function BuildStatsCard({
                       e.preventDefault()
                       handlePinCapability(item)
                     } : undefined}
-                    onMouseEnter={() => setHoveredCapability(item.name)}
-                    onMouseLeave={() => setHoveredCapability(null)}
-                    className="flex items-center justify-between gap-5 rounded-2xl bg-background border p-2"
+                    className="group flex items-center justify-between gap-5 rounded-2xl bg-background border p-2"
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <div className="min-w-0 flex-1">
@@ -546,7 +559,7 @@ export default function BuildStatsCard({
                     </div>
                     {showPin && (
                       <div className={`flex items-center justify-center size-8 rounded-full bg-primary flex-shrink-0 transition-opacity duration-250 ${
-                        isPinned || isHovered ? 'opacity-100' : 'opacity-0'
+                        isPinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                       }`}>
                         <Pin className="size-4 text-primary-foreground" />
                       </div>

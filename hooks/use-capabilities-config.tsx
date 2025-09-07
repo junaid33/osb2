@@ -22,6 +22,13 @@ interface SelectedCapability {
 interface CapabilitiesConfig {
   selectedCapabilities: SelectedCapability[]
   lastPinnedToolId?: string // Track the last tool that had a capability pinned
+  buildStatsCard: {
+    currentAppIndex: number
+    isCollapsed: boolean
+    capabilitySearch: string
+    appSearchTerm: string
+    isAppsDropdownOpen: boolean
+  }
 }
 
 interface CapabilitiesProviderProps {
@@ -32,7 +39,7 @@ interface CapabilitiesProviderProps {
 interface CapabilitiesProviderState {
   config: CapabilitiesConfig
   setConfig: (config: Partial<CapabilitiesConfig> | ((prev: CapabilitiesConfig) => Partial<CapabilitiesConfig>)) => void
-  addCapability: (capability: SelectedCapability) => void
+  addCapability: (capability: SelectedCapability, apps?: any[]) => void
   removeCapability: (capabilityId: string) => void
   isHydrated: boolean
 }
@@ -45,6 +52,13 @@ const CapabilitiesContext = React.createContext<CapabilitiesProviderState | unde
 const defaultCapabilitiesConfig: CapabilitiesConfig = {
   selectedCapabilities: [],
   lastPinnedToolId: undefined,
+  buildStatsCard: {
+    currentAppIndex: 0,
+    isCollapsed: false,
+    capabilitySearch: '',
+    appSearchTerm: '',
+    isAppsDropdownOpen: false,
+  }
 }
 
 const saveToLS = (storageKey: string, config: CapabilitiesConfig) => {
@@ -130,14 +144,29 @@ const CapabilitiesRoot = ({
   )
 
   const addCapability = React.useCallback(
-    (capability: SelectedCapability) => {
-      setConfig((prev) => ({
-        selectedCapabilities: [
-          ...prev.selectedCapabilities.filter(c => c.id !== capability.id),
-          capability
-        ],
-        lastPinnedToolId: capability.toolId
-      }))
+    (capability: SelectedCapability, apps?: any[]) => {
+      setConfig((prev) => {
+        // Find the app index if apps array is provided
+        let newAppIndex = prev.buildStatsCard.currentAppIndex
+        if (apps && apps.length > 0) {
+          const foundIndex = apps.findIndex(app => app.id === capability.toolId)
+          if (foundIndex !== -1) {
+            newAppIndex = foundIndex
+          }
+        }
+
+        return {
+          selectedCapabilities: [
+            ...prev.selectedCapabilities.filter(c => c.id !== capability.id),
+            capability
+          ],
+          lastPinnedToolId: capability.toolId,
+          buildStatsCard: {
+            ...prev.buildStatsCard,
+            currentAppIndex: newAppIndex
+          }
+        }
+      })
     },
     [setConfig]
   )
@@ -215,12 +244,31 @@ const useLastPinnedTool = () => {
   return config.lastPinnedToolId
 }
 
+const useBuildStatsCardState = () => {
+  const { config, setConfig } = useCapabilitiesConfig()
+  
+  const updateBuildStatsCard = React.useCallback(
+    (updates: Partial<CapabilitiesConfig['buildStatsCard']>) => {
+      setConfig((prev) => ({
+        buildStatsCard: { ...prev.buildStatsCard, ...updates }
+      }))
+    },
+    [setConfig]
+  )
+
+  return {
+    buildStatsCard: config.buildStatsCard,
+    updateBuildStatsCard
+  }
+}
+
 export { 
   useCapabilitiesConfig, 
   CapabilitiesProvider, 
   useSelectedCapabilities,
   useCapabilityActions,
   useLastPinnedTool,
+  useBuildStatsCardState,
   type SelectedCapability,
   type CapabilitiesConfig,
 }

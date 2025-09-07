@@ -607,23 +607,7 @@ export function DataTableDrawer({
   ] as const
   const [selectedTemplate, setSelectedTemplate] = React.useState<string>("1")
   const [copied, setCopied] = React.useState(false)
-  const [capabilityStackIndices, setCapabilityStackIndices] = React.useState<{[key: string]: number}>({})
   const [githubMcpEnabled, setGithubMcpEnabled] = React.useState(true)
-  // BuildStatsCard persistent state
-  const [buildStatsCurrentAppIndex, setBuildStatsCurrentAppIndex] = React.useState(0)
-  const [buildStatsIsCollapsed, setBuildStatsIsCollapsed] = React.useState(false)
-  const [buildStatsCapabilitySearch, setBuildStatsCapabilitySearch] = React.useState('')
-  const [buildStatsAppSearchTerm, setBuildStatsAppSearchTerm] = React.useState('')
-
-  // Auto-switch BuildStatsCard to the app that was just pinned when drawer opens
-  React.useEffect(() => {
-    if (open && lastPinnedToolId && apps.length > 0) {
-      const toolIndex = apps.findIndex(app => app.id === lastPinnedToolId)
-      if (toolIndex !== -1 && toolIndex !== buildStatsCurrentAppIndex) {
-        setBuildStatsCurrentAppIndex(toolIndex)
-      }
-    }
-  }, [open, lastPinnedToolId, apps, buildStatsCurrentAppIndex])
 
   const handleCapabilitySelect = (capability: any, toolId: string, toolName: string, toolIcon?: string, toolColor?: string, toolRepo?: string) => {
     const compositeId = `${toolId}-${capability.capability.id}`
@@ -656,65 +640,21 @@ export function DataTableDrawer({
     removeCapability(capabilityId)
   }
 
-  const handleCapabilityPin = (capabilityImpl: any, app: any) => {
-    const compositeId = `${app.id}-${capabilityImpl.capability.id}`
-    const selectedCapability: SelectedCapability = {
-      id: compositeId,
-      capabilityId: capabilityImpl.capability.id,
-      toolId: app.id,
-      name: capabilityImpl.capability.name,
-      description: capabilityImpl.capability.description,
-      category: capabilityImpl.capability.category,
-      complexity: capabilityImpl.capability.complexity,
-      toolName: app.name,
-      toolIcon: app.simpleIconSlug,
-      toolColor: app.simpleIconColor,
-      toolRepo: app.repositoryUrl,
-      implementationNotes: capabilityImpl.implementationNotes,
-      githubPath: capabilityImpl.githubPath,
-      documentationUrl: capabilityImpl.documentationUrl
-    }
 
-    const isAlreadySelected = actualSelectedCapabilities.some(f => f.id === compositeId)
-    if (isAlreadySelected) {
-      removeCapability(compositeId)
-    } else {
-      addCapability(selectedCapability)
-    }
-  }
-
-  // Group capabilities by name and create stacks
+  // Group capabilities by tool/application
   const groupedCapabilities = React.useMemo(() => {
     const groups: {[key: string]: SelectedCapability[]} = {}
     if (actualSelectedCapabilities) {
       actualSelectedCapabilities.forEach(capability => {
-        if (!groups[capability.name]) {
-          groups[capability.name] = []
+        if (!groups[capability.toolName]) {
+          groups[capability.toolName] = []
         }
-        groups[capability.name].push(capability)
+        groups[capability.toolName].push(capability)
       })
     }
     return groups
   }, [actualSelectedCapabilities])
 
-  const navigateCapabilityStack = (capabilityName: string, direction: 'prev' | 'next') => {
-    const stack = groupedCapabilities[capabilityName]
-    if (!stack || stack.length <= 1) return
-
-    const currentIndex = capabilityStackIndices[capabilityName] || 0
-    let newIndex: number
-
-    if (direction === 'next') {
-      newIndex = (currentIndex + 1) % stack.length
-    } else {
-      newIndex = (currentIndex - 1 + stack.length) % stack.length
-    }
-
-    setCapabilityStackIndices(prev => ({
-      ...prev,
-      [capabilityName]: newIndex
-    }))
-  }
 
   const handleCopyPrompt = async () => {
     const prompt = "Select a starter, then add capabilities to generate a copy-ready AI prompt."
@@ -879,135 +819,81 @@ export function DataTableDrawer({
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Find Open Source Capabilities</p>
                       <BuildStatsCard 
                         apps={apps}
-                        onCapabilityPin={handleCapabilityPin}
-                        onCapabilityUnpin={handleCapabilityRemove}
                         selectedCapabilities={new Set(actualSelectedCapabilities?.map(cap => cap.id) || [])}
-                        currentAppIndex={buildStatsCurrentAppIndex}
-                        onCurrentAppIndexChange={setBuildStatsCurrentAppIndex}
-                        isCollapsed={buildStatsIsCollapsed}
-                        onIsCollapsedChange={setBuildStatsIsCollapsed}
-                        capabilitySearch={buildStatsCapabilitySearch}
-                        onCapabilitySearchChange={setBuildStatsCapabilitySearch}
-                        appSearchTerm={buildStatsAppSearchTerm}
-                        onAppSearchTermChange={setBuildStatsAppSearchTerm}
                       />
 
                       {/* Selected Capabilities */}
                       {Object.keys(groupedCapabilities).length > 0 && (
-                        <div className="space-y-2">
-                          {Object.entries(groupedCapabilities).map(([capabilityName, stack]) => {
-                            const currentIndex = capabilityStackIndices[capabilityName] || 0
-                            const currentCapability = stack[currentIndex]
-                            const hasMultiple = stack.length > 1
+                        <div className="space-y-3">
+                          {Object.entries(groupedCapabilities).map(([toolName, capabilities]) => {
+                            const firstCapability = capabilities[0]
 
                             return (
-                              <div key={capabilityName} className="relative">
-                                {/* Stack Effect - Background Cards */}
-                                {hasMultiple && (
-                                  <>
-                                    <div className="absolute inset-0 rounded-lg bg-muted border transform translate-x-2 translate-y-2 opacity-40" />
-                                    <div className="absolute inset-0 rounded-lg bg-muted border transform translate-x-1 translate-y-1 opacity-70" />
-                                  </>
-                                )}
-                                
-                                {/* Main Card */}
-                                <div className="relative flex items-center justify-between gap-3 rounded-lg bg-muted border p-3">
-                                  <div className="flex items-center gap-3 flex-1">
-                                    <div className="flex h-8 w-8 items-center justify-center">
-                                      {currentCapability.toolIcon ? (
-                                        <ToolIcon
-                                          name={currentCapability.toolName}
-                                          simpleIconSlug={currentCapability.toolIcon}
-                                          simpleIconColor={currentCapability.toolColor}
-                                          size={32}
-                                        />
-                                      ) : (
-                                        <div 
-                                          className="flex aspect-square items-center justify-center rounded-md overflow-hidden relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none"
-                                          style={{ 
-                                            width: 32, 
-                                            height: 32,
-                                            background: currentCapability.toolColor || '#6B7280'
-                                          }}
+                              <div key={toolName} className="space-y-2">
+                                {/* Tool Header */}
+                                <div className="flex items-center gap-2 px-1">
+                                  <div className="flex h-6 w-6 items-center justify-center">
+                                    {firstCapability.toolIcon ? (
+                                      <ToolIcon
+                                        name={firstCapability.toolName}
+                                        simpleIconSlug={firstCapability.toolIcon}
+                                        simpleIconColor={firstCapability.toolColor}
+                                        size={24}
+                                      />
+                                    ) : (
+                                      <div 
+                                        className="flex aspect-square items-center justify-center rounded-sm overflow-hidden"
+                                        style={{ 
+                                          width: 24, 
+                                          height: 24,
+                                          background: firstCapability.toolColor || '#6B7280'
+                                        }}
+                                      >
+                                        <span
+                                          className="font-silkscreen text-primary-foreground select-none"
+                                          style={{ fontSize: 10 }}
                                         >
-                                          {/* Noise texture overlay */}
-                                          <div
-                                            className="absolute inset-0 opacity-30"
-                                            style={{
-                                              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                                              backgroundSize: "256px 256px",
-                                            }}
-                                          />
-                                          
-                                          {/* Letter */}
-                                          <div className="absolute inset-0 flex items-center justify-center">
-                                            <span
-                                              className="font-silkscreen text-primary-foreground select-none"
-                                              style={{ fontSize: 16 }}
-                                            >
-                                              {currentCapability.toolName.charAt(0).toUpperCase()}
-                                            </span>
-                                          </div>
-                                          
-                                          {/* Subtle highlight */}
-                                          <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/10 to-transparent rounded-t-md" />
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-medium">{currentCapability.name}</div>
-                                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                                        from {currentCapability.toolName}
-                                        {hasMultiple && (
-                                          <span className="ml-1">({currentIndex + 1}/{stack.length})</span>
-                                        )}
+                                          {firstCapability.toolName.charAt(0).toUpperCase()}
+                                        </span>
                                       </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-foreground">{toolName}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {capabilities.length} {capabilities.length > 1 ? 'capabilities' : 'capability'}
                                     </div>
                                   </div>
-                                  
-                                  {/* Navigation and Remove */}
-                                  <div className="flex items-center gap-1">
-                                    {hasMultiple && (
-                                      <>
-                                        <Popover>
-                                          <PopoverTrigger asChild>
-                                            <button className="text-gray-400 hover:text-foreground transition-colors p-1 focus:outline-none focus:ring-0">
-                                              <Info className="h-4 w-4" />
-                                            </button>
-                                          </PopoverTrigger>
-                                          <PopoverContent side="top" className="w-64">
-                                            <div className="space-y-2">
-                                              <div className="flex items-center gap-2">
-                                                <Info className="h-3 w-3 text-muted-foreground" />
-                                                <span className="text-sm font-medium">Multiple Options</span>
-                                              </div>
-                                              <p className="text-sm text-muted-foreground">
-                                                You've selected the same capability from different apps. The AI will reference both implementations to provide better suggestions.
-                                              </p>
-                                            </div>
-                                          </PopoverContent>
-                                        </Popover>
-                                        <button
-                                          onClick={() => navigateCapabilityStack(capabilityName, 'prev')}
-                                          className="text-gray-400 hover:text-foreground transition-colors p-1 focus:outline-none focus:ring-0"
-                                        >
-                                          <ChevronLeft className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                          onClick={() => navigateCapabilityStack(capabilityName, 'next')}
-                                          className="text-gray-400 hover:text-foreground transition-colors p-1 focus:outline-none focus:ring-0"
-                                        >
-                                          <ChevronRight className="h-4 w-4" />
-                                        </button>
-                                      </>
-                                    )}
-                                    <button
-                                      onClick={() => handleCapabilityRemove(currentCapability.id)}
-                                      className="text-gray-400 hover:text-red-500 transition-colors p-1 focus:outline-none focus:ring-0"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  </div>
+                                </div>
+
+                                {/* Capabilities List */}
+                                <div className="space-y-1 pl-8">
+                                  {capabilities.map((capability) => (
+                                    <div key={capability.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted border p-2">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium">{capability.name}</div>
+                                        <div className="text-xs text-muted-foreground">
+                                          {capability.category && (
+                                            <span className="capitalize">{capability.category}</span>
+                                          )}
+                                          {capability.complexity && capability.category && (
+                                            <span className="mx-1">·</span>
+                                          )}
+                                          {capability.complexity && (
+                                            <span>{capability.complexity} complexity</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Remove Button */}
+                                      <button
+                                        onClick={() => handleCapabilityRemove(capability.id)}
+                                        className="text-gray-400 hover:text-red-500 transition-colors p-1 focus:outline-none focus:ring-0"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
                             )
