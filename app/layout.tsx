@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Audiowide, Silkscreen } from "next/font/google";
+import { Inter, Audiowide, Silkscreen, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -22,8 +22,15 @@ const silkscreen = Silkscreen({
   display: "swap",
 });
 
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Open Source Builders - Find Open Source Alternatives",
+  title: "opensource.builders - Find Open Source Alternatives",
   description:
     "Discover open source alternatives to popular proprietary software",
 };
@@ -39,7 +46,7 @@ export default function RootLayout({
         <link href="/favicon.svg" rel="icon" />
       </head>
       <body
-        className={`${inter.variable} ${handwriting.variable} ${silkscreen.variable} font-inter antialiased`}
+        className={`${inter.variable} ${handwriting.variable} ${silkscreen.variable} ${instrumentSerif.variable} font-inter antialiased`}
       >
         <div className="min-h-screen">
           {children}

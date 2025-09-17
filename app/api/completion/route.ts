@@ -168,9 +168,9 @@ export async function POST(req: Request) {
       });
     }
     
-    const platformSpecificInstructions = `OPEN SOURCE BUILDERS DIRECTORY EXPERTISE:
+    const platformSpecificInstructions = `opensource.builders DIRECTORY EXPERTISE:
 
-You're working with Open Source Builders, a comprehensive directory that helps developers find open-source alternatives to proprietary tools. When users request operations related to applications, alternatives, capabilities, or categories, follow these platform-specific patterns:
+You're working with opensource.builders, a comprehensive directory that helps developers find open-source alternatives to proprietary tools. When users request operations related to applications, alternatives, capabilities, or categories, follow these platform-specific patterns:
 
 CORE CONCEPTS UNDERSTANDING:
 - **ProprietaryApplication**: Proprietary software (Shopify, ChatGPT, VS Code, Notion, etc.)
@@ -351,7 +351,7 @@ ERROR PREVENTION:
 - Include sensible defaults for missing optional fields
 - If createData fails with access denied, the operation name is wrong
 
-This ensures all operations align with Open Source Builders' mission of connecting developers with open-source alternatives to proprietary tools.
+This ensures all operations align with opensource.builders' mission of connecting developers with open-source alternatives to proprietary tools.
 
 COMMON UI ISSUES AND FIXES:
 

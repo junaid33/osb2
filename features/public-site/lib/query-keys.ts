@@ -15,10 +15,11 @@ export const queryKeys = {
     alternatives: (slug: string) => [...queryKeys.proprietaryApps.all, 'alternatives', slug] as const,
   },
 
-  // Open source applications  
+  // Open source applications
   openSourceApps: {
     all: ['openSourceApps'] as const,
     lists: () => [...queryKeys.openSourceApps.all, 'list'] as const,
+    list: () => [...queryKeys.openSourceApps.all, 'list'] as const,
     details: () => [...queryKeys.openSourceApps.all, 'detail'] as const,
     detail: (slug: string) => [...queryKeys.openSourceApps.details(), slug] as const,
   },
@@ -39,6 +40,7 @@ export const queryKeys = {
   capabilities: {
     all: ['capabilities'] as const,
     lists: () => [...queryKeys.capabilities.all, 'list'] as const,
+    list: () => [...queryKeys.capabilities.all, 'list'] as const,
     search: (query: string) => [...queryKeys.capabilities.all, 'search', query] as const,
     applications: (slug: string) => [...queryKeys.capabilities.all, 'applications', slug] as const,
   },

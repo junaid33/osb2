@@ -56,11 +56,17 @@ export default function Navbar({ className, apps }: NavbarProps) {
               <NavbarSearch />
             </div>
 
-            {/* Right side - Theme toggle and Build button */}
+            {/* Right side - About, Theme toggle and Build button */}
             <div className="flex items-center gap-2">
+              <a
+                href="/about"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
+              >
+                About
+              </a>
               <ThemeToggle />
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 className="text-sm"
                 onClick={() => setDrawerOpen(true)}
               >
@@ -70,9 +76,17 @@ export default function Navbar({ className, apps }: NavbarProps) {
             </div>
           </div>
 
-          {/* Mobile search row (shown only on mobile) */}
-          <div className="flex md:hidden">
-            <NavbarSearch />
+          {/* Mobile search and about row (shown only on mobile) */}
+          <div className="flex md:hidden items-center gap-3">
+            <a
+              href="/about"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              About
+            </a>
+            <div className="flex-1">
+              <NavbarSearch />
+            </div>
           </div>
         </div>
       </header>

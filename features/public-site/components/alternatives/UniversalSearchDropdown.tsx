@@ -108,23 +108,23 @@ export function UniversalSearchDropdown({
           viewBox="0 0 32 32" 
           xmlns="http://www.w3.org/2000/svg" 
           stroke="currentColor" 
-          stroke-width="2.75"
+          strokeWidth="2.75"
           className={cn(
             "h-10 w-10 transition-transform duration-200 text-muted-foreground",
             isOpen && "rotate-180"
           )}
         >
-          <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-          <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor" stroke-width="0.1"></g>
+          <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+          <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="currentColor" strokeWidth="0.1"></g>
           <g id="SVGRepo_iconCarrier">
-            <path d="M16.003 18.626l7.081-7.081L25 13.46l-8.997 8.998-9.003-9 1.917-1.916z" stroke-width="2.75"></path>
+            <path d="M16.003 18.626l7.081-7.081L25 13.46l-8.997 8.998-9.003-9 1.917-1.916z" strokeWidth="2.75"></path>
           </g>
         </svg>
       </button>
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="fixed top-auto left-auto mt-2 w-96 max-h-96 rounded-xl border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75 shadow-lg z-[100] text-foreground" style={{
+        <div className="fixed top-auto left-auto mt-2 w-96 max-h-96 rounded-xl border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75 shadow-lg z-[100] text-foreground overflow-hidden" style={{
           top: dropdownRef.current ? dropdownRef.current.getBoundingClientRect().bottom + 8 : 'auto',
           left: dropdownRef.current ? dropdownRef.current.getBoundingClientRect().left : 'auto'
         }}>
@@ -140,34 +140,34 @@ export function UniversalSearchDropdown({
               <div className="flex flex-wrap gap-1.5 mb-4">
                 <button
                   onClick={() => setShowCapabilities(!showCapabilities)}
-                  className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200 hover:from-gray-100 hover:to-gray-150 transition-all duration-200 shadow-sm"
+                  className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-background border hover:bg-muted transition-all duration-200 shadow-sm"
                 >
                   <div className={`inline-block size-2 shrink-0 rounded-full ${
                     showCapabilities 
-                      ? 'bg-green-500 outline outline-2 -outline-offset-1 outline-green-100' 
-                      : 'bg-red-500 outline outline-2 -outline-offset-1 outline-red-100'
+                      ? 'bg-emerald-500 dark:bg-emerald-400 outline outline-2 -outline-offset-1 outline-emerald-200 dark:outline-emerald-900/50' 
+                      : 'bg-rose-400 dark:bg-rose-400 outline outline-2 -outline-offset-1 outline-rose-200 dark:outline-rose-900/50'
                   }`} />
                   <span className="text-xs font-medium">Capabilities</span>
                 </button>
                 <button
                   onClick={() => setShowOpenSource(!showOpenSource)}
-                  className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200 hover:from-gray-100 hover:to-gray-150 transition-all duration-200 shadow-sm"
+                  className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-background border hover:bg-muted transition-all duration-200 shadow-sm"
                 >
                   <div className={`inline-block size-2 shrink-0 rounded-full ${
                     showOpenSource 
-                      ? 'bg-green-500 outline outline-2 -outline-offset-1 outline-green-100' 
-                      : 'bg-red-500 outline outline-2 -outline-offset-1 outline-red-100'
+                      ? 'bg-emerald-500 dark:bg-emerald-400 outline outline-2 -outline-offset-1 outline-emerald-200 dark:outline-emerald-900/50' 
+                      : 'bg-rose-400 dark:bg-rose-400 outline outline-2 -outline-offset-1 outline-rose-200 dark:outline-rose-900/50'
                   }`} />
                   <span className="text-xs font-medium">Open Source</span>
                 </button>
                 <button
                   onClick={() => setShowProprietary(!showProprietary)}
-                  className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200 hover:from-gray-100 hover:to-gray-150 transition-all duration-200 shadow-sm"
+                  className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-background border hover:bg-muted transition-all duration-200 shadow-sm"
                 >
                   <div className={`inline-block size-2 shrink-0 rounded-full ${
                     showProprietary 
-                      ? 'bg-green-500 outline outline-2 -outline-offset-1 outline-green-100' 
-                      : 'bg-red-500 outline outline-2 -outline-offset-1 outline-red-100'
+                      ? 'bg-emerald-500 dark:bg-emerald-400 outline outline-2 -outline-offset-1 outline-emerald-200 dark:outline-emerald-900/50' 
+                      : 'bg-rose-400 dark:bg-rose-400 outline outline-2 -outline-offset-1 outline-rose-200 dark:outline-rose-900/50'
                   }`} />
                   <span className="text-xs font-medium">Proprietary</span>
                 </button>
@@ -180,7 +180,7 @@ export function UniversalSearchDropdown({
                   ref={searchInputRef}
                   type="search"
                   placeholder="Search tools, apps, or capabilities..."
-                  className="h-9 w-full pl-9 pr-3 text-sm bg-background"
+                  className="h-9 w-full pl-9 pr-3 text-sm bg-background font-normal placeholder:font-normal"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -189,7 +189,7 @@ export function UniversalSearchDropdown({
               {/* Results */}
               <div className="max-h-64 overflow-auto">
                 {!searchTerm.trim() ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">
+                  <div className="p-4 text-center text-sm text-muted-foreground font-normal">
                     Start typing to search for apps or capabilities
                   </div>
                 ) : loading ? (

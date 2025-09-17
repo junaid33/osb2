@@ -1,9 +1,13 @@
 'use client'
 
 import Hero from '../components/landing/Hero'
+import Footer from '../components/landing/MarqueeFooter'
 
 export function LandingPage() {
   return (
-    <Hero />
+    <div>
+      <Hero />
+      <Footer />
+    </div>
   )
 }

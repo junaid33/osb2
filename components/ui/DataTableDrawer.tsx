@@ -4,12 +4,19 @@ import * as DrawerPrimitives from "@radix-ui/react-dialog"
 import * as TabsPrimitives from "@radix-ui/react-tabs"
 import * as SelectPrimitives from "@radix-ui/react-select"
 import { RiCloseLine, RiExpandUpDownLine, RiCheckLine, RiArrowUpSLine, RiArrowDownSLine } from "@remixicon/react"
-import { Download, File, Trash2, CircleCheck, Github, Info, Folder, Lightbulb, ChevronDown, ChevronLeft, ChevronRight, Nut, Search, X, Package } from "lucide-react"
+import { Download, File, Trash2, CircleCheck, Github, Info, Folder, Lightbulb, ChevronDown, ChevronLeft, ChevronRight, Nut, Search, X, Package, Star, ExternalLink } from "lucide-react"
 import React from "react"
+import {
+  motion,
+  AnimatePresence,
+  type HTMLMotionProps,
+} from 'framer-motion'
+import { buttonVariants } from '@/components/ui/button'
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { request } from 'graphql-request'
 import debounce from 'lodash.debounce'
 // Using Tremor-style Select components defined below for consistent styling
@@ -359,6 +366,141 @@ function TremorSelectItem({ children, ...props }: { children: React.ReactNode, [
   )
 }
 
+// Copied GitHubStarsButton component (adapted for star buttons)
+type StarButtonProps = HTMLMotionProps<'a'> & {
+  username: string;
+  repo: string;
+  formatted?: boolean;
+};
+
+function StarButton({
+  ref,
+  username,
+  repo,
+  formatted = false,
+  className,
+  ...props
+}: StarButtonProps) {
+  const [stars, setStars] = React.useState(1255);
+  const [displayParticles, setDisplayParticles] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  const repoUrl = React.useMemo(
+    () => `https://github.com/${username}/${repo}`,
+    [username, repo],
+  );
+
+  React.useEffect(() => {
+    fetch(`https://api.github.com/repos/${username}/${repo}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data && typeof data.stargazers_count === 'number') {
+          setStars(data.stargazers_count);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, [username, repo]);
+
+  const handleDisplayParticles = React.useCallback(() => {
+    setDisplayParticles(true);
+    setTimeout(() => setDisplayParticles(false), 1500);
+  }, []);
+
+  const localRef = React.useRef<HTMLAnchorElement>(null);
+  React.useImperativeHandle(ref, () => localRef.current as HTMLAnchorElement);
+
+  const formatStarCount = (count: number) => {
+    if (formatted) {
+      if (count < 1000) return count.toString();
+      if (count < 1000000) return `${Math.floor(count / 1000)}k`;
+      return `${Math.floor(count / 1000000)}M`;
+    }
+    return count.toLocaleString('en-US');
+  };
+  
+  const handleClick = React.useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      handleDisplayParticles();
+      setTimeout(() => window.open(repoUrl, '_blank'), 500);
+    },
+    [handleDisplayParticles, repoUrl],
+  );
+
+  if (isLoading) return null;
+
+  return (
+    <motion.a
+      ref={localRef}
+      href={repoUrl}
+      rel="noopener noreferrer"
+      target="_blank"
+      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.05 }}
+      onClick={handleClick}
+      className={cn(
+        buttonVariants({ variant: "default", size: "sm" }),
+        "cursor-pointer h-8 px-2 text-xs",
+        className,
+      )}
+      {...props}
+    >
+      <div className="relative inline-flex size-[12px] shrink-0">
+        <Star
+          className="fill-muted-foreground text-muted-foreground"
+          size={12}
+          aria-hidden="true"
+        />
+        <AnimatePresence>
+          {displayParticles && (
+            <>
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background:
+                    'radial-gradient(circle, rgba(113,113,122,0.4) 0%, rgba(113,113,122,0) 70%)',
+                }}
+                initial={{ scale: 1.2, opacity: 0 }}
+                animate={{ scale: [1.2, 1.8, 1.2], opacity: [0, 0.3, 0] }}
+                transition={{ duration: 1.2, ease: 'easeInOut' }}
+              />
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{ boxShadow: '0 0 10px 2px rgba(113,113,122,0.6)' }}
+                initial={{ scale: 1, opacity: 0 }}
+                animate={{ scale: [1, 1.5], opacity: [0.8, 0] }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              />
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 rounded-full bg-zinc-500"
+                  initial={{ x: '50%', y: '50%', scale: 0, opacity: 0 }}
+                  animate={{
+                    x: `calc(50% + ${Math.cos((i * Math.PI) / 3) * 30}px)`,
+                    y: `calc(50% + ${Math.sin((i * Math.PI) / 3) * 30}px)`,
+                    scale: [0, 1, 0],
+                    opacity: [0, 1, 0],
+                  }}
+                  transition={{
+                    duration: 0.8,
+                    delay: i * 0.05,
+                    ease: 'easeOut',
+                  }}
+                />
+              ))}
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+      <span className="relative inline-flex">
+        {formatStarCount(stars)}
+      </span>
+    </motion.a>
+  );
+}
+
 // Tremor-style Tabs components  
 function TremorTabs({ children, ...props }: { children: React.ReactNode, [key: string]: any }) {
   return <TabsPrimitives.Root {...props}>{children}</TabsPrimitives.Root>
@@ -608,6 +750,7 @@ export function DataTableDrawer({
   const [selectedTemplate, setSelectedTemplate] = React.useState<string>("1")
   const [copied, setCopied] = React.useState(false)
   const [githubMcpEnabled, setGithubMcpEnabled] = React.useState(true)
+  const [showThankYouDialog, setShowThankYouDialog] = React.useState(false)
 
   const handleCapabilitySelect = (capability: any, toolId: string, toolName: string, toolIcon?: string, toolColor?: string, toolRepo?: string) => {
     const compositeId = `${toolId}-${capability.capability.id}`
@@ -656,11 +799,74 @@ export function DataTableDrawer({
   }, [actualSelectedCapabilities])
 
 
+  const generatePromptText = () => {
+    // Get the current template and capabilities using the same logic as the UI
+    const currentTemplate = starterTemplates.find(t => t.id === selectedTemplate)
+    
+    if (!currentTemplate && (!actualSelectedCapabilities || actualSelectedCapabilities.length === 0)) {
+      return "Select a starter and add capabilities to generate your AI prompt."
+    }
+
+    let prompt = ""
+    
+    // Add starter section (reusing the same logic as the UI)
+    if (currentTemplate) {
+      prompt += `Use the ${currentTemplate.name} as your starting point. This template provides ${currentTemplate.description.toLowerCase()} and will serve as the foundation for your application.\n\n`
+      
+      if (currentTemplate.id === '1') {
+        prompt += `Please git clone this repo: git clone https://github.com/junaid33/next-keystone-starter.git\n\nThen read the README.md and other relevant markdown files to get a general sense of how this full-stack Next.js application works. It's a Next.js application with a Keystone admin dashboard built-in, a GraphQL API, role-based permissions, and is designed with feature slices architecture. Review the /features directory structure and the project's architecture documentation.\n\n`
+      }
+    }
+    
+    // Group capabilities by name (same logic as the UI)
+    const capabilitiesByName: {[capabilityName: string]: SelectedCapability[]} = {}
+    actualSelectedCapabilities?.forEach(capability => {
+      if (!capabilitiesByName[capability.name]) {
+        capabilitiesByName[capability.name] = []
+      }
+      capabilitiesByName[capability.name].push(capability)
+    })
+    
+    // Add capability sections (simplified text version of the UI)
+    Object.entries(capabilitiesByName).forEach(([capabilityName, implementations]) => {
+      prompt += `Implement ${capabilityName}:\n\n`
+      
+      implementations.forEach((implementation) => {
+        if (implementations.length > 1) {
+          prompt += `${implementation.toolName} approach:\n`
+        }
+        
+        if (implementation.description) {
+          prompt += `${implementation.description}\n\n`
+        }
+        
+        if (implementation.githubPath && implementation.toolRepo) {
+          if (githubMcpEnabled) {
+            prompt += `Use the GitHub MCP to access the ${implementation.toolName} repository at ${implementation.toolRepo}, then analyze ${implementation.githubPath} to understand the implementation.\n\n`
+          } else {
+            prompt += `Look up ${implementation.githubPath} in the ${implementation.toolName} repository on GitHub for implementation details.\n\n`
+          }
+        }
+        
+        if (implementation.documentationUrl) {
+          prompt += `Reference the documentation at: ${implementation.documentationUrl}\n\n`
+        }
+        
+        if (implementation.implementationNotes) {
+          prompt += `Note: ${implementation.implementationNotes}\n\n`
+        }
+      })
+    })
+    
+    return prompt.trim()
+  }
+
   const handleCopyPrompt = async () => {
-    const prompt = "Select a starter, then add capabilities to generate a copy-ready AI prompt."
+    const prompt = generatePromptText()
     try {
       await navigator.clipboard.writeText(prompt)
       setCopied(true)
+      setShowThankYouDialog(true)
       setTimeout(() => setCopied(false), 1500)
     } catch (_error) {
       setCopied(false)
@@ -822,82 +1028,85 @@ export function DataTableDrawer({
                         selectedCapabilities={new Set(actualSelectedCapabilities?.map(cap => cap.id) || [])}
                       />
 
-                      {/* Selected Capabilities */}
-                      {Object.keys(groupedCapabilities).length > 0 && (
-                        <div className="space-y-3">
-                          {Object.entries(groupedCapabilities).map(([toolName, capabilities]) => {
-                            const firstCapability = capabilities[0]
-
-                            return (
-                              <div key={toolName} className="space-y-2">
-                                {/* Tool Header */}
-                                <div className="flex items-center gap-2 px-1">
-                                  <div className="flex h-6 w-6 items-center justify-center">
-                                    {firstCapability.toolIcon ? (
-                                      <ToolIcon
-                                        name={firstCapability.toolName}
-                                        simpleIconSlug={firstCapability.toolIcon}
-                                        simpleIconColor={firstCapability.toolColor}
-                                        size={24}
-                                      />
-                                    ) : (
-                                      <div 
-                                        className="flex aspect-square items-center justify-center rounded-sm overflow-hidden"
-                                        style={{ 
-                                          width: 24, 
-                                          height: 24,
-                                          background: firstCapability.toolColor || '#6B7280'
-                                        }}
+                      {/* Selected Capabilities - Flat List */}
+                      {actualSelectedCapabilities && actualSelectedCapabilities.length > 0 && (
+                        <div className="space-y-2">
+                          {actualSelectedCapabilities
+                            .sort((a, b) => a.toolName.localeCompare(b.toolName))
+                            .map((capability) => (
+                            <div key={capability.id} className="flex items-center gap-3 rounded-lg bg-muted border p-3">
+                              {/* Tool Icon */}
+                              <div className="flex h-8 w-8 items-center justify-center flex-shrink-0">
+                                {capability.toolIcon ? (
+                                  <ToolIcon
+                                    name={capability.toolName}
+                                    simpleIconSlug={capability.toolIcon}
+                                    simpleIconColor={capability.toolColor}
+                                    size={32}
+                                  />
+                                ) : (
+                                  <div 
+                                    className="flex aspect-square items-center justify-center rounded-md overflow-hidden relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none"
+                                    style={{ 
+                                      width: 32, 
+                                      height: 32,
+                                      background: capability.toolColor || '#6B7280'
+                                    }}
+                                  >
+                                    {/* Noise texture overlay */}
+                                    <div
+                                      className="absolute inset-0 opacity-30"
+                                      style={{
+                                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                                        backgroundSize: "256px 256px",
+                                      }}
+                                    />
+                                    
+                                    {/* Letter */}
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <span
+                                        className="font-silkscreen text-primary-foreground select-none"
+                                        style={{ fontSize: 16 }}
                                       >
-                                        <span
-                                          className="font-silkscreen text-primary-foreground select-none"
-                                          style={{ fontSize: 10 }}
-                                        >
-                                          {firstCapability.toolName.charAt(0).toUpperCase()}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-foreground">{toolName}</div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {capabilities.length} {capabilities.length > 1 ? 'capabilities' : 'capability'}
+                                        {capability.toolName.charAt(0).toUpperCase()}
+                                      </span>
                                     </div>
+                                    
+                                    {/* Subtle highlight */}
+                                    <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/10 to-transparent rounded-t-md" />
                                   </div>
-                                </div>
-
-                                {/* Capabilities List */}
-                                <div className="space-y-1 pl-8">
-                                  {capabilities.map((capability) => (
-                                    <div key={capability.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted border p-2">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-medium">{capability.name}</div>
-                                        <div className="text-xs text-muted-foreground">
-                                          {capability.category && (
-                                            <span className="capitalize">{capability.category}</span>
-                                          )}
-                                          {capability.complexity && capability.category && (
-                                            <span className="mx-1">·</span>
-                                          )}
-                                          {capability.complexity && (
-                                            <span>{capability.complexity} complexity</span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      
-                                      {/* Remove Button */}
-                                      <button
-                                        onClick={() => handleCapabilityRemove(capability.id)}
-                                        className="text-gray-400 hover:text-red-500 transition-colors p-1 focus:outline-none focus:ring-0"
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </button>
-                                    </div>
-                                  ))}
+                                )}
+                              </div>
+                              
+                              {/* Capability Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium">{capability.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  from {capability.toolName}
+                                  {capability.category && (
+                                    <>
+                                      <span className="mx-1">·</span>
+                                      <span className="capitalize">{capability.category}</span>
+                                    </>
+                                  )}
+                                  {capability.complexity && (
+                                    <>
+                                      <span className="mx-1">·</span>
+                                      <span>{capability.complexity} complexity</span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
-                            )
-                          })}
+                              
+                              {/* Remove Button */}
+                              <button
+                                onClick={() => handleCapabilityRemove(capability.id)}
+                                className="text-gray-400 hover:text-red-500 transition-colors p-1 focus:outline-none focus:ring-0 flex-shrink-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -975,13 +1184,13 @@ export function DataTableDrawer({
                               )
                             }
 
-                            // Group capabilities by tool
-                            const capabilitiesByTool: {[toolName: string]: SelectedCapability[]} = {}
+                            // Group capabilities by capability name for better AI prompt generation
+                            const capabilitiesByName: {[capabilityName: string]: SelectedCapability[]} = {}
                             actualSelectedCapabilities.forEach(capability => {
-                              if (!capabilitiesByTool[capability.toolName]) {
-                                capabilitiesByTool[capability.toolName] = []
+                              if (!capabilitiesByName[capability.name]) {
+                                capabilitiesByName[capability.name] = []
                               }
-                              capabilitiesByTool[capability.toolName].push(capability)
+                              capabilitiesByName[capability.name].push(capability)
                             })
 
                             return (
@@ -1095,70 +1304,99 @@ export function DataTableDrawer({
                                   </div>
                                 )}
 
-                                {/* Tool-specific capability paragraphs */}
-                                {Object.entries(capabilitiesByTool).map(([toolName, capabilities]) => {
-                                  const firstCapability = capabilities[0]
+                                {/* Capability-specific paragraphs */}
+                                {Object.entries(capabilitiesByName).map(([capabilityName, implementations]) => {
+                                  const hasMultipleImplementations = implementations.length > 1
                                   return (
-                                    <div key={toolName} className="flex items-start gap-2 text-sm leading-relaxed">
+                                    <div key={capabilityName} className="flex items-start gap-2 text-sm leading-relaxed">
                                       <Popover>
                                         <PopoverTrigger asChild>
                                           <button className="flex-shrink-0 inline-flex items-center gap-2 hover:bg-muted/50 rounded px-1 py-0.5 transition-colors focus:outline-none focus:ring-0">
-                                            {firstCapability.toolIcon ? (
-                                              <ToolIcon
-                                                name={firstCapability.toolName}
-                                                simpleIconSlug={firstCapability.toolIcon}
-                                                simpleIconColor={firstCapability.toolColor}
-                                                size={20}
-                                              />
-                                            ) : (
-                                              <div 
-                                                className="flex aspect-square items-center justify-center rounded-sm overflow-hidden text-[10px] font-silkscreen"
-                                                style={{ 
-                                                  width: 20, 
-                                                  height: 20,
-                                                  background: firstCapability.toolColor || '#6B7280',
-                                                  color: 'white'
-                                                }}
-                                              >
-                                                {firstCapability.toolName.charAt(0).toUpperCase()}
-                                              </div>
-                                            )}
+                                            {/* Avatar stack showing all tools that implement this capability */}
+                                            <div className="relative flex -space-x-1.5">
+                                              {implementations.slice(0, 3).map((impl, idx) => (
+                                                <div key={impl.id} className="relative" style={{ zIndex: 10 - idx }}>
+                                                  {impl.toolIcon ? (
+                                                    <div className="w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center">
+                                                      <ToolIcon
+                                                        name={impl.toolName}
+                                                        simpleIconSlug={impl.toolIcon}
+                                                        simpleIconColor={impl.toolColor}
+                                                        size={16}
+                                                      />
+                                                    </div>
+                                                  ) : (
+                                                    <div 
+                                                      className="w-5 h-5 rounded-full border border-border flex items-center justify-center relative overflow-hidden"
+                                                      style={{ 
+                                                        background: impl.toolColor || '#6B7280',
+                                                        color: 'white'
+                                                      }}
+                                                    >
+                                                      {/* Noise texture overlay */}
+                                                      <div
+                                                        className="absolute inset-0 opacity-30"
+                                                        style={{
+                                                          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                                                          backgroundSize: "256px 256px",
+                                                        }}
+                                                      />
+                                                      <span className="relative text-[8px] font-bold">
+                                                        {impl.toolName.charAt(0).toUpperCase()}
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              ))}
+                                              {implementations.length > 3 && (
+                                                <div className="w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center text-[8px] font-bold text-muted-foreground">
+                                                  +{implementations.length - 3}
+                                                </div>
+                                              )}
+                                            </div>
                                           </button>
                                         </PopoverTrigger>
                                         <PopoverContent side="top" className="w-80">
                                           <div className="space-y-3">
                                             <div className="flex items-center gap-2">
-                                              {firstCapability.toolIcon ? (
-                                                <ToolIcon
-                                                  name={firstCapability.toolName}
-                                                  simpleIconSlug={firstCapability.toolIcon}
-                                                  simpleIconColor={firstCapability.toolColor}
-                                                  size={20}
-                                                />
-                                              ) : (
-                                                <div 
-                                                  className="flex aspect-square items-center justify-center rounded-md overflow-hidden text-xs font-silkscreen"
-                                                  style={{ 
-                                                    width: 20, 
-                                                    height: 20,
-                                                    background: firstCapability.toolColor || '#6B7280',
-                                                    color: 'white'
-                                                  }}
-                                                >
-                                                  {firstCapability.toolName.charAt(0).toUpperCase()}
-                                                </div>
+                                              <span className="text-sm font-medium">{capabilityName}</span>
+                                              {hasMultipleImplementations && (
+                                                <span className="text-xs bg-muted px-2 py-1 rounded">
+                                                  {implementations.length} implementations
+                                                </span>
                                               )}
-                                              <span className="text-sm font-medium">Capabilities from {toolName}</span>
                                             </div>
                                             <div className="space-y-2">
-                                              {capabilities.map(capability => (
-                                                <div key={`${toolName}-${capability.id}`} className="p-2 rounded border bg-muted/30">
-                                                  <p className="text-sm font-medium">{capability.name}</p>
-                                                  {capability.description && (
-                                                    <p className="text-xs text-muted-foreground mt-1">{capability.description}</p>
+                                              {implementations.map(implementation => (
+                                                <div key={implementation.id} className="p-2 rounded border bg-muted/30">
+                                                  <div className="flex items-center gap-2 mb-1">
+                                                    {implementation.toolIcon ? (
+                                                      <ToolIcon
+                                                        name={implementation.toolName}
+                                                        simpleIconSlug={implementation.toolIcon}
+                                                        simpleIconColor={implementation.toolColor}
+                                                        size={16}
+                                                      />
+                                                    ) : (
+                                                      <div 
+                                                        className="flex aspect-square items-center justify-center rounded-sm overflow-hidden text-[8px] font-silkscreen"
+                                                        style={{ 
+                                                          width: 16, 
+                                                          height: 16,
+                                                          background: implementation.toolColor || '#6B7280',
+                                                          color: 'white'
+                                                        }}
+                                                      >
+                                                        {implementation.toolName.charAt(0).toUpperCase()}
+                                                      </div>
+                                                    )}
+                                                    <p className="text-sm font-medium">{implementation.toolName}</p>
+                                                  </div>
+                                                  {implementation.description && (
+                                                    <p className="text-xs text-muted-foreground mt-1">{implementation.description}</p>
                                                   )}
-                                                  {capability.implementationNotes && (
-                                                    <p className="text-xs text-muted-foreground mt-1 italic">{capability.implementationNotes}</p>
+                                                  {implementation.implementationNotes && (
+                                                    <p className="text-xs text-muted-foreground mt-1 italic">{implementation.implementationNotes}</p>
                                                   )}
                                                 </div>
                                               ))}
@@ -1169,64 +1407,79 @@ export function DataTableDrawer({
                                       <div className="flex-1">
                                         <Collapsible>
                                           <div className="flex items-center justify-between">
-                                            From {toolName}, implement the following capabilities:
+                                            Implement {capabilityName}:
                                             <CollapsibleTrigger className="text-muted-foreground hover:text-foreground transition-colors p-1">
                                               <ChevronDown className="h-4 w-4" />
                                             </CollapsibleTrigger>
                                           </div>
                                           
                                           <CollapsibleContent>
-                                            {capabilities.map((capability, index) => (
-                                          <div key={`${toolName}-${capability.id}-${index}`} className="mt-3">
+                                            {implementations.map((implementation, index) => (
+                                          <div key={`${capabilityName}-${implementation.id}-${index}`} className="mt-3">
                                             {/* Everything inside one card */}
                                             <div className="w-full cursor-pointer transition duration-100 ease-linear rounded-[10px] bg-card text-foreground shadow-xs ring-1 ring-inset ring-border hover:bg-muted/50 p-4">
                                               {/* Header with badge */}
                                               <div className="inline-flex items-center mb-3">
                                                 <span className="inline-flex items-center rounded-md bg-muted shadow-xs ring-1 ring-inset ring-border gap-2 px-2 py-0.5">
-                                                  <span 
-                                                    className="inline-block size-2 shrink-0 rounded-full outline outline-3 -outline-offset-1"
-                                                    style={{ 
-                                                      backgroundColor: capability.toolColor || '#6366f1',
-                                                      outlineColor: `${capability.toolColor || '#6366f1'}30`
-                                                    }}
-                                                  />
-                                                  {capability.name}
+                                                  {implementation.toolIcon ? (
+                                                    <ToolIcon
+                                                      name={implementation.toolName}
+                                                      simpleIconSlug={implementation.toolIcon}
+                                                      simpleIconColor={implementation.toolColor}
+                                                      size={16}
+                                                    />
+                                                  ) : (
+                                                    <span 
+                                                      className="inline-block size-2 shrink-0 rounded-full outline outline-3 -outline-offset-1"
+                                                      style={{ 
+                                                        backgroundColor: implementation.toolColor || '#6366f1',
+                                                        outlineColor: `${implementation.toolColor || '#6366f1'}30`
+                                                      }}
+                                                    />
+                                                  )}
+                                                  {hasMultipleImplementations ? `${implementation.toolName} approach` : implementation.toolName}
                                                 </span>
                                               </div>
                                               
                                               {/* All content inside the card */}
                                               <div className="space-y-3 text-sm">
-                                                {capability.description && (
-                                                  <div className="text-muted-foreground">{capability.description}</div>
+                                                {implementation.description && (
+                                                  <div className="text-muted-foreground">{implementation.description}</div>
                                                 )}
                                                 
-                                                {capability.githubPath && capability.toolRepo && (
+                                                {implementation.githubPath && implementation.toolRepo && (
                                                   <div className="text-muted-foreground">
                                                     {githubMcpEnabled ? (
-                                                      <>Use the GitHub MCP to access the {toolName} repository at <code className="bg-muted px-1 rounded text-xs">{capability.toolRepo}</code>, then analyze <code className="bg-muted px-1 rounded text-xs">{capability.githubPath}</code> to understand the implementation.</>
+                                                      <>Use the GitHub MCP to access the {implementation.toolName} repository at <code className="bg-muted px-1 rounded text-xs">{implementation.toolRepo}</code>, then analyze <code className="bg-muted px-1 rounded text-xs">{implementation.githubPath}</code> to understand the implementation.</>
                                                     ) : (
-                                                      <>Look up <code className="bg-muted px-1 rounded text-xs">{capability.githubPath}</code> in the {toolName} repository on GitHub for implementation details.</>
+                                                      <>Look up <code className="bg-muted px-1 rounded text-xs">{implementation.githubPath}</code> in the {implementation.toolName} repository on GitHub for implementation details.</>
                                                     )}
                                                   </div>
                                                 )}
                                                 
-                                                {capability.documentationUrl && (
+                                                {implementation.documentationUrl && (
                                                   <div className="text-muted-foreground">
-                                                    Reference the documentation at: <a href={capability.documentationUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{capability.documentationUrl}</a>
+                                                    Reference the documentation at: <a href={implementation.documentationUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{implementation.documentationUrl}</a>
                                                   </div>
                                                 )}
                                                 
-                                                {capability.implementationNotes && (
+                                                {implementation.implementationNotes && (
                                                   <div className="text-muted-foreground">
-                                                    <em>Note: {capability.implementationNotes}</em>
+                                                    <em>Note: {implementation.implementationNotes}</em>
                                                   </div>
                                                 )}
                                                 
-                                                {capability.implementationComplexity && (
+                                                {implementation.implementationComplexity && (
                                                   <div>
                                                     <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                                                      Complexity: {capability.implementationComplexity}
+                                                      Complexity: {implementation.implementationComplexity}
                                                     </span>
+                                                  </div>
+                                                )}
+
+                                                {hasMultipleImplementations && index === 0 && (
+                                                  <div className="text-muted-foreground text-xs italic border-t pt-2 mt-2">
+                                                    💡 Compare with other implementations below to choose the best approach for your use case.
                                                   </div>
                                                 )}
                                               </div>
@@ -1257,6 +1510,105 @@ export function DataTableDrawer({
           </DrawerPrimitives.Overlay>
         </DrawerPrimitives.Portal>
       ) : null}
+
+      {/* Thank You Dialog */}
+      <Dialog open={showThankYouDialog} onOpenChange={setShowThankYouDialog}>
+        <DialogContent className="sm:max-w-lg p-6">
+          <div className="relative flex shrink-0 items-center justify-center rounded-full size-16 bg-blue-50 text-blue-600 mb-3">
+            <CircleCheck className="size-8" />
+          </div>
+          
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground mb-2">
+              Prompt Copied Successfully!
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mb-3">
+              Your prompt references amazing features built by these projects. Please consider starring them to show your support.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-2">
+            {actualSelectedCapabilities && Array.from(
+              new Map(
+                actualSelectedCapabilities.map(cap => [cap.toolName, cap])
+              ).values()
+            ).map((capability) => (
+              capability.toolRepo && (() => {
+                const repoMatch = capability.toolRepo.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+                if (repoMatch) {
+                  const [, username, repo] = repoMatch;
+                  return (
+                    <div key={capability.id} className="flex items-center gap-3 rounded-lg bg-muted border p-3">
+                      {/* Tool Icon */}
+                      <div className="flex h-8 w-8 items-center justify-center flex-shrink-0">
+                        {capability.toolIcon ? (
+                          <ToolIcon
+                            name={capability.toolName}
+                            simpleIconSlug={capability.toolIcon}
+                            simpleIconColor={capability.toolColor}
+                            size={32}
+                          />
+                        ) : (
+                          <div 
+                            className="flex aspect-square items-center justify-center rounded-md overflow-hidden relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none"
+                            style={{ 
+                              width: 32, 
+                              height: 32,
+                              background: capability.toolColor || '#6B7280'
+                            }}
+                          >
+                            {/* Noise texture overlay */}
+                            <div
+                              className="absolute inset-0 opacity-30"
+                              style={{
+                                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                                backgroundSize: "256px 256px",
+                              }}
+                            />
+                            
+                            {/* Letter */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span
+                                className="font-silkscreen text-primary-foreground select-none"
+                                style={{ fontSize: 16 }}
+                              >
+                                {capability.toolName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            
+                            {/* Subtle highlight */}
+                            <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/10 to-transparent rounded-t-md" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Capability Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium">{capability.toolName}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {username}/{repo.replace('.git', '')}
+                        </div>
+                      </div>
+                      
+                      {/* Star Button */}
+                      <a
+                        href={`https://github.com/${username}/${repo.replace('.git', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200 hover:from-gray-100 hover:to-gray-150 transition-all duration-200 shadow-sm text-sm font-medium"
+                      >
+                        <Star className="h-4 w-4" />
+                        <span>Star</span>
+                      </a>
+                    </div>
+                  );
+                }
+                return null;
+              })()
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DrawerPrimitives.Root>
   )
 }

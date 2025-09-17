@@ -1,7 +1,7 @@
 // Single data functions used by both server prefetch and client useQuery
 import { makeGraphQLRequest } from './graphql/client';
-import { GET_POPULAR_APPS, GET_ALTERNATIVES, GET_ALL_PROPRIETARY_APPS, MULTI_MODEL_SEARCH, GET_OS_ALTERNATIVES, GET_CAPABILITY_APPLICATIONS } from './graphql/queries';
-import { PopularAppsResponse, AlternativesResponse, SearchResult, PopularApp, ProprietaryApplication, OpenSourceApplication, CapabilityApplicationsResponse } from '../types';
+import { GET_POPULAR_APPS, GET_ALTERNATIVES, GET_ALL_PROPRIETARY_APPS, MULTI_MODEL_SEARCH, GET_OS_ALTERNATIVES, GET_CAPABILITY_APPLICATIONS, GET_ALL_CAPABILITIES, GET_ALL_OPEN_SOURCE_APPS } from './graphql/queries';
+import { PopularAppsResponse, AlternativesResponse, SearchResult, PopularApp, ProprietaryApplication, OpenSourceApplication, CapabilityApplicationsResponse, AllCapabilitiesResponse, AllOpenSourceAppsResponse, Capability } from '../types';
 
 // Fetch popular apps
 export async function fetchPopularApps(): Promise<PopularApp[]> {
@@ -241,4 +241,16 @@ export async function fetchCapabilityApplications(slug: string): Promise<Capabil
       isActive: app.isActive,
     })) || [],
   };
+}
+
+// Fetch all capabilities
+export async function fetchAllCapabilities(): Promise<Capability[]> {
+  const data = await makeGraphQLRequest<AllCapabilitiesResponse>(GET_ALL_CAPABILITIES);
+  return data.capabilities;
+}
+
+// Fetch all open source applications
+export async function fetchAllOpenSourceApps(): Promise<OpenSourceApplication[]> {
+  const data = await makeGraphQLRequest<AllOpenSourceAppsResponse>(GET_ALL_OPEN_SOURCE_APPS);
+  return data.openSourceApplications;
 }

@@ -160,3 +160,12 @@ export interface CapabilityApplicationsResponse {
   }>;
   openSourceApplications: OpenSourceApplicationWithCapability[];
 }
+
+// Response types for new queries
+export interface AllCapabilitiesResponse {
+  capabilities: Capability[];
+}
+
+export interface AllOpenSourceAppsResponse {
+  openSourceApplications: OpenSourceApplication[];
+}

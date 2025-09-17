@@ -5,7 +5,7 @@ export const GET_POPULAR_APPS = gql`
   query GetPopularApps {
     proprietaryApplications(
       take: 9
-      orderBy: { openSourceAlternativesCount: desc }
+      orderBy: { name: asc }
     ) {
       id
       name
@@ -14,7 +14,6 @@ export const GET_POPULAR_APPS = gql`
       websiteUrl
       simpleIconSlug
       simpleIconColor
-      openSourceAlternativesCount
     }
   }
 `;
@@ -85,7 +84,6 @@ export const GET_ALL_PROPRIETARY_APPS = gql`
       websiteUrl
       simpleIconSlug
       simpleIconColor
-      openSourceAlternativesCount
     }
   }
 `;
@@ -279,6 +277,119 @@ export const GET_CAPABILITY_APPLICATIONS = gql`
         implementationComplexity
         isActive
       }
+    }
+  }
+`;
+
+// All capabilities query - filtered to exclude feature count capabilities
+export const GET_ALL_CAPABILITIES = gql`
+  query GetAllCapabilities {
+    capabilities(
+      where: {
+        AND: [
+          {
+            name: {
+              not: {
+                startsWith: "30+"
+              }
+            }
+          }
+          {
+            name: {
+              not: {
+                startsWith: "34+"
+              }
+            }
+          }
+          {
+            name: {
+              not: {
+                startsWith: "35+"
+              }
+            }
+          }
+          {
+            name: {
+              not: {
+                startsWith: "50+"
+              }
+            }
+          }
+          {
+            name: {
+              not: {
+                startsWith: "90+"
+              }
+            }
+          }
+          {
+            name: {
+              not: {
+                contains: "Question Types"
+              }
+            }
+          }
+          {
+            name: {
+              not: {
+                contains: "Themes"
+              }
+            }
+          }
+          {
+            name: {
+              not: {
+                contains: "Building Blocks"
+              }
+            }
+          }
+          {
+            name: {
+              not: {
+                contains: "Data Source Connectors"
+              }
+            }
+          }
+          {
+            name: {
+              not: {
+                contains: "Notification Channels"
+              }
+            }
+          }
+        ]
+      }
+      orderBy: { name: asc }
+      take: 12
+    ) {
+      id
+      name
+      slug
+      description
+      category
+      complexity
+    }
+  }
+`;
+
+// All open source applications query
+export const GET_ALL_OPEN_SOURCE_APPS = gql`
+  query GetAllOpenSourceApps {
+    openSourceApplications(
+      orderBy: { githubStars: desc }
+      take: 12
+    ) {
+      id
+      name
+      slug
+      description
+      githubStars
+      githubForks
+      license
+      websiteUrl
+      repositoryUrl
+      simpleIconSlug
+      simpleIconColor
     }
   }
 `;
