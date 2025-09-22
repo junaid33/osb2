@@ -1,9 +1,8 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Sparkles, Info, Wand2 } from "lucide-react";
 import { Logo } from "@/features/dashboard/components/Logo";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NavbarSearch } from "@/features/public-site/components/search/NavbarSearch";
 import { DataTableDrawer } from "@/components/ui/DataTableDrawer";
 import { cn } from "@/lib/utils";
@@ -56,37 +55,56 @@ export default function Navbar({ className, apps }: NavbarProps) {
               <NavbarSearch />
             </div>
 
-            {/* Right side - About, Theme toggle and Build button */}
+            {/* Right side - About and Build button */}
             <div className="flex items-center gap-2">
-              <a
-                href="/about"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
+              {/* About - outline button on desktop, icon only on mobile */}
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="hidden sm:flex"
               >
-                About
-              </a>
-              <ThemeToggle />
+                <a href="/about">
+                  About
+                </a>
+              </Button>
+
+              {/* About - icon only on mobile */}
+              <Button
+                variant="outline"
+                size="icon"
+                asChild
+                className="sm:hidden"
+              >
+                <a href="/about">
+                  <Info className="size-3.5" />
+                </a>
+              </Button>
+
+              {/* Build - text on desktop, icon only on mobile */}
               <Button
                 size="sm"
-                className="text-sm"
+                className="hidden sm:flex"
                 onClick={() => setDrawerOpen(true)}
               >
-                <Sparkles className="h-4 w-4" />
+                <Wand2 className="size-3.5" />
                 Build
+              </Button>
+
+              {/* Build - icon only on mobile */}
+              <Button
+                size="icon"
+                className="sm:hidden"
+                onClick={() => setDrawerOpen(true)}
+              >
+                <Wand2 className="size-3.5" />
               </Button>
             </div>
           </div>
 
-          {/* Mobile search and about row (shown only on mobile) */}
-          <div className="flex md:hidden items-center gap-3">
-            <a
-              href="/about"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              About
-            </a>
-            <div className="flex-1">
-              <NavbarSearch />
-            </div>
+          {/* Mobile search row (shown only on mobile) */}
+          <div className="flex md:hidden items-center pb-3">
+            <NavbarSearch />
           </div>
         </div>
       </header>

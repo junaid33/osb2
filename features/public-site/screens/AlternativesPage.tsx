@@ -115,10 +115,11 @@ export function AlternativesPageClient({ slug }: AlternativesPageClientProps) {
             />
           </div>
           <div className="md:w-1/3 space-y-6">
-            <StatsCard 
+            <StatsCard
               capabilities={proprietaryApp.capabilities}
               openSourceAlternatives={proprietaryApp.openSourceAlternatives}
               onOpenDrawer={() => setDrawerOpen(true)}
+              apps={apps}
             />
           </div>
         </div>

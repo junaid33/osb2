@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/popover";
 import { useCapabilityActions } from '@/hooks/use-capabilities-config';
 import type { SelectedCapability } from '@/hooks/use-capabilities-config';
+import ToolIcon from '@/components/ToolIcon';
+import { DonutChart } from '@/components/ui/shared-donut-chart';
 
 interface Capability {
   id: string;
@@ -44,6 +46,7 @@ interface OpenSourceAlternative {
   slug: string;
   simpleIconSlug?: string;
   simpleIconColor?: string;
+  repositoryUrl?: string;
   capabilities: Array<{ capability: Capability }>;
 }
 
@@ -51,6 +54,7 @@ interface StatsCardProps {
   capabilities?: Capability[];
   openSourceAlternatives?: OpenSourceAlternative[];
   onOpenDrawer?: () => void;
+  apps?: any[]; // For updating BuildStatsCard context
 }
 
 // Fallback data for when no capabilities are provided
@@ -63,74 +67,8 @@ const fallbackData: CapabilityItem[] = [
 ];
 
 
-const chartConfig = {
-  used: {
-    label: "Used",
-    color: "hsl(var(--primary))",
-  },
-  remaining: {
-    label: "Remaining",
-    color: "hsl(var(--muted))",
-  },
-} satisfies ChartConfig;
 
-function DonutChart({ percentage, compatible }: { percentage: number; compatible: boolean }) {
-  const backgroundData = [{ name: "background", value: 100, fill: "#E5E7EB" }];
-  const fillColor = compatible ? "#10B981" : "#EF4444"; // Green for compatible, red for not compatible
-  const foregroundData = [
-    {
-      name: "used",
-      value: compatible ? 100 : Math.max(0, Math.min(100, Number(percentage))),
-      fill: fillColor,
-    },
-    {
-      name: "empty",
-      value: compatible ? 0 : 100 - Math.max(0, Math.min(100, Number(percentage))),
-      fill: "transparent",
-    },
-  ];
-
-  return (
-    <ChartContainer
-      config={chartConfig}
-      className="w-6 h-6 flex-shrink-0 aspect-square"
-    >
-      <PieChart>
-        <Pie
-          data={backgroundData}
-          dataKey="value"
-          nameKey="name"
-          cx="50%"
-          cy="50%"
-          innerRadius={6}
-          outerRadius={10}
-          isAnimationActive={false}
-        >
-          {backgroundData.map((entry, index) => (
-            <Cell key={`bg-cell-${index}`} fill={entry.fill} />
-          ))}
-        </Pie>
-        <Pie
-          data={foregroundData}
-          dataKey="value"
-          nameKey="name"
-          cx="50%"
-          cy="50%"
-          innerRadius={6}
-          outerRadius={10}
-          startAngle={90}
-          endAngle={-270}
-        >
-          {foregroundData.map((entry, index) => (
-            <Cell key={`fg-cell-${index}`} fill={entry.fill} />
-          ))}
-        </Pie>
-      </PieChart>
-    </ChartContainer>
-  );
-}
-
-export default function StatsCard({ capabilities = [], openSourceAlternatives = [], onOpenDrawer }: StatsCardProps) {
+export default function StatsCard({ capabilities = [], openSourceAlternatives = [], onOpenDrawer, apps = [] }: StatsCardProps) {
   const [currentAlternativeIndex, setCurrentAlternativeIndex] = useState(0);
   const [pinnedCapabilities, setPinnedCapabilities] = useState<Set<string>>(new Set());
   const [hoveredCapability, setHoveredCapability] = useState<string | null>(null);
@@ -310,7 +248,7 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
         githubPath: capabilityItem.githubPath,
         documentationUrl: capabilityItem.documentationUrl
       }
-      addCapability(newCapability)
+      addCapability(newCapability, apps)
     } else {
       removeCapability(compositeId)
     }
@@ -323,26 +261,12 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
         <div className="flex items-center justify-between px-3 py-2">
           {/* Left side: Logo and capabilities info */}
           <div className="flex items-center gap-2 flex-1 min-w-0" ref={dropdownRef}>
-            {currentAlternative.simpleIconSlug ? (
-              <div 
-                className="w-8 h-8 flex-shrink-0 rounded flex items-center justify-center"
-                style={{ backgroundColor: currentAlternative.simpleIconColor || '#6B7280' }}
-              >
-                <img
-                  src={`https://cdn.jsdelivr.net/npm/simple-icons@v15/icons/${currentAlternative.simpleIconSlug}.svg`}
-                  alt={`${currentAlternative.name} icon`}
-                  className="w-5 h-5"
-                  style={{ filter: 'brightness(0) invert(1)' }}
-                />
-              </div>
-            ) : (
-              <div 
-                className="w-8 h-8 flex-shrink-0 rounded flex items-center justify-center text-white font-bold text-sm"
-                style={{ backgroundColor: currentAlternative.simpleIconColor || '#6B7280' }}
-              >
-                {currentAlternative.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <ToolIcon
+              name={currentAlternative.name}
+              simpleIconSlug={currentAlternative.simpleIconSlug}
+              simpleIconColor={currentAlternative.simpleIconColor}
+              size={32}
+            />
             
             {/* Custom dropdown trigger */}
             <div className="relative flex-1 min-w-0">
@@ -400,26 +324,12 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
                               }`}
                             >
                               <div className="flex h-8 w-8 items-center justify-center">
-                                {alt.simpleIconSlug ? (
-                                  <div 
-                                    className="w-6 h-6 rounded-md flex items-center justify-center"
-                                    style={{ backgroundColor: alt.simpleIconColor || '#6B7280' }}
-                                  >
-                                    <img
-                                      src={`https://cdn.jsdelivr.net/npm/simple-icons@v15/icons/${alt.simpleIconSlug}.svg`}
-                                      alt={`${alt.name} icon`}
-                                      className="w-4 h-4"
-                                      style={{ filter: 'brightness(0) invert(1)' }}
-                                    />
-                                  </div>
-                                ) : (
-                                  <div 
-                                    className="w-6 h-6 rounded-md flex items-center justify-center text-white font-bold text-xs"
-                                    style={{ backgroundColor: alt.simpleIconColor || '#6B7280' }}
-                                  >
-                                    {alt.name.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
+                                <ToolIcon
+                                  name={alt.name}
+                                  simpleIconSlug={alt.simpleIconSlug}
+                                  simpleIconColor={alt.simpleIconColor}
+                                  size={24}
+                                />
                               </div>
                               <div className="flex-1 overflow-hidden">
                                 <div className="font-medium">{alt.name}</div>

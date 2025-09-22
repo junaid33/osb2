@@ -9,8 +9,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-handwriting: var(--font-handwriting);
-  --font-silkscreen: var(--font-silkscreen);
   --font-geist-sans: var(--font-geist-sans);
   --font-instrument-serif: var(--font-instrument-serif);
   --color-sidebar-ring: var(--sidebar-ring);

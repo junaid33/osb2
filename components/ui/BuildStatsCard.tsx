@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import ToolIcon from '@/components/ToolIcon';
 import { useBuildStatsCardState, useCapabilityActions } from '@/hooks/use-capabilities-config';
+import { DonutChart } from '@/components/ui/shared-donut-chart';
 
 
 interface Capability {
@@ -65,60 +66,6 @@ interface BuildStatsCardProps {
   selectedCapabilities?: Set<string>;
 }
 
-const chartConfig = {
-  used: {
-    label: "Used",
-    color: "hsl(var(--primary))",
-  },
-  remaining: {
-    label: "Remaining",
-    color: "hsl(var(--muted))",
-  },
-} satisfies ChartConfig;
-
-function DonutChart({ percentage, compatible }: { percentage: number; compatible: boolean }) {
-  const backgroundData = [{ name: "background", value: 100, fill: "#E5E7EB" }];
-  const fillColor = compatible ? "#10B981" : "#EF4444";
-  const foregroundData = [
-    { name: "used", value: percentage, fill: fillColor },
-    { name: "remaining", value: 100 - percentage, fill: "transparent" },
-  ];
-
-  return (
-    <ChartContainer config={chartConfig} className="h-8 w-8">
-      <PieChart>
-        <Pie
-          data={backgroundData}
-          dataKey="value"
-          cx="50%"
-          cy="50%"
-          innerRadius={10}
-          outerRadius={14}
-          startAngle={90}
-          endAngle={-270}
-        >
-          {backgroundData.map((entry, index) => (
-            <Cell key={`bg-cell-${index}`} fill={entry.fill} />
-          ))}
-        </Pie>
-        <Pie
-          data={foregroundData}
-          dataKey="value"
-          cx="50%"
-          cy="50%"
-          innerRadius={10}
-          outerRadius={14}
-          startAngle={90}
-          endAngle={-270}
-        >
-          {foregroundData.map((entry, index) => (
-            <Cell key={`fg-cell-${index}`} fill={entry.fill} />
-          ))}
-        </Pie>
-      </PieChart>
-    </ChartContainer>
-  );
-}
 
 export default function BuildStatsCard({ 
   apps, 
@@ -498,6 +445,9 @@ export default function BuildStatsCard({
                     className="group flex items-center justify-between gap-5 rounded-2xl bg-background border p-2"
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="rounded-lg p-1 flex-shrink-0">
+                        <DonutChart percentage={item.percentage} compatible={item.compatible} isAnimationActive={false} />
+                      </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold truncate">{item.name}</div>
                         <div className="flex items-center gap-1 text-[11px] font-medium">

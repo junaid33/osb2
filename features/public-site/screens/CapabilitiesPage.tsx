@@ -117,10 +117,11 @@ export function CapabilitiesPageClient({ slug }: CapabilitiesPageClientProps) {
             />
           </div>
           <div className="md:w-1/3 space-y-6">
-            <StatsCard 
+            <StatsCard
               capabilities={[capability]}
               openSourceAlternatives={openSourceApplications}
               onOpenDrawer={() => setDrawerOpen(true)}
+              apps={apps}
             />
           </div>
         </div>

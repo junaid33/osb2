@@ -19,7 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { request } from 'graphql-request'
 import debounce from 'lodash.debounce'
-// Using Tremor-style Select components defined below for consistent styling
+// Using custom Select components defined below for consistent styling
 import { LogoIcon as OpenfrontIcon } from "@/components/OpenFrontIcon"
 import { LogoIcon as OpenshipIcon } from "@/components/OpenShipIcon"
 import { NextKeystoneIcon } from "@/components/NextKeystoneIcon"
@@ -192,8 +192,8 @@ function formatDate(dateString: string): string {
   }).format(new Date(dateString))
 }
 
-// Tremor-style Badge component
-function TremorBadge({ variant, children }: { variant: string, children: React.ReactNode }) {
+// Badge component
+function CustomBadge({ variant, children }: { variant: string, children: React.ReactNode }) {
   const baseStyles = "inline-flex items-center gap-x-1 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset"
   
   let variantStyles = ""
@@ -231,8 +231,8 @@ function TremorBadge({ variant, children }: { variant: string, children: React.R
   )
 }
 
-// Tremor-style Button component 
-function TremorButton({ variant = "primary", children, className, ...props }: { 
+// Button component
+function CustomButton({ variant = "primary", children, className, ...props }: { 
   variant?: "primary" | "secondary" | "ghost"
   children: React.ReactNode
   className?: string
@@ -260,8 +260,8 @@ function TremorButton({ variant = "primary", children, className, ...props }: {
   )
 }
 
-// Tremor-style Input component
-function TremorInput({ className, ...props }: { className?: string, [key: string]: any }) {
+// Input component
+function CustomInput({ className, ...props }: { className?: string, [key: string]: any }) {
   return (
     <input
       className={cn(
@@ -280,12 +280,12 @@ function TremorInput({ className, ...props }: { className?: string, [key: string
   )
 }
 
-// Tremor-style Select components
-function TremorSelect({ children, ...props }: { children: React.ReactNode, [key: string]: any }) {
+// Select components
+function CustomSelect({ children, ...props }: { children: React.ReactNode, [key: string]: any }) {
   return <SelectPrimitives.Root {...props}>{children}</SelectPrimitives.Root>
 }
 
-function TremorSelectTrigger({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) {
+function CustomSelectTrigger({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) {
   return (
     <SelectPrimitives.Trigger
       className={cn(
@@ -310,7 +310,7 @@ function TremorSelectTrigger({ children, className, ...props }: { children: Reac
   )
 }
 
-function TremorSelectContent({ children, ...props }: { children: React.ReactNode, [key: string]: any }) {
+function CustomSelectContent({ children, ...props }: { children: React.ReactNode, [key: string]: any }) {
   return (
     <SelectPrimitives.Portal>
       <SelectPrimitives.Content
@@ -344,7 +344,7 @@ function TremorSelectContent({ children, ...props }: { children: React.ReactNode
   )
 }
 
-function TremorSelectItem({ children, ...props }: { children: React.ReactNode, [key: string]: any }) {
+function CustomSelectItem({ children, ...props }: { children: React.ReactNode, [key: string]: any }) {
   return (
     <SelectPrimitives.Item
       className={cn(
@@ -501,12 +501,12 @@ function StarButton({
   );
 }
 
-// Tremor-style Tabs components  
-function TremorTabs({ children, ...props }: { children: React.ReactNode, [key: string]: any }) {
+// Tabs components
+function CustomTabs({ children, ...props }: { children: React.ReactNode, [key: string]: any }) {
   return <TabsPrimitives.Root {...props}>{children}</TabsPrimitives.Root>
 }
 
-function TremorTabsList({ children, className }: { children: React.ReactNode, className?: string }) {
+function CustomTabsList({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
     <TabsPrimitives.List className={cn("px-6", className)}>
       <div className="flex items-center justify-start border-b border-gray-200 dark:border-gray-800">
@@ -516,7 +516,7 @@ function TremorTabsList({ children, className }: { children: React.ReactNode, cl
   )
 }
 
-function TremorTabsTrigger({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) {
+function CustomTabsTrigger({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) {
   return (
     <TabsPrimitives.Trigger
       className={cn(
@@ -538,7 +538,7 @@ function TremorTabsTrigger({ children, className, ...props }: { children: React.
   )
 }
 
-function TremorTabsContent({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) {
+function CustomTabsContent({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) {
   return (
     <TabsPrimitives.Content
       className={cn("outline-none focus:ring-0", className)}
@@ -549,8 +549,8 @@ function TremorTabsContent({ children, className, ...props }: { children: React.
   )
 }
 
-// Tremor-style Label component
-function TremorLabel({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) {
+// Label component
+function CustomLabel({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) {
   return (
     <label className={cn("text-sm font-medium text-gray-900 dark:text-gray-50", className)} {...props}>
       {children}
@@ -558,8 +558,8 @@ function TremorLabel({ children, className, ...props }: { children: React.ReactN
   )
 }
 
-// Tremor-style Textarea component
-function TremorTextarea({ className, ...props }: { className?: string, [key: string]: any }) {
+// Textarea component
+function CustomTextarea({ className, ...props }: { className?: string, [key: string]: any }) {
   return (
     <textarea
       className={cn(
@@ -678,10 +678,10 @@ function DataTableDrawerFeed() {
           className="size-6 flex-none rounded-full bg-gray-50"
         />
         <form action="#" className="relative flex-auto">
-          <TremorLabel className="sr-only">
+          <CustomLabel className="sr-only">
             Add your comment
-          </TremorLabel>
-          <TremorTextarea
+          </CustomLabel>
+          <CustomTextarea
             placeholder="Add your comment..."
             rows={4}
           />
@@ -910,32 +910,32 @@ export function DataTableDrawer({
                   </div>
                 </div>
                 <DrawerPrimitives.Close asChild>
-                  <TremorButton
+                  <CustomButton
                     variant="ghost"
                     className="aspect-square p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   >
                     <RiCloseLine className="size-6" aria-hidden="true" />
-                  </TremorButton>
+                  </CustomButton>
                 </DrawerPrimitives.Close>
               </div>
 
               {/* Body */}
               <div className="flex-1 py-4 -mx-6 overflow-y-scroll">
-                <TremorTabs defaultValue="builder">
-                  <TremorTabsList>
-                    <TremorTabsTrigger value="builder" className="px-4">
+                <CustomTabs defaultValue="builder">
+                  <CustomTabsList>
+                    <CustomTabsTrigger value="builder" className="px-4">
                       Builder
-                    </TremorTabsTrigger>
-                    <TremorTabsTrigger value="full-prompt" className="px-4">
+                    </CustomTabsTrigger>
+                    <CustomTabsTrigger value="full-prompt" className="px-4">
                       Full Prompt
-                    </TremorTabsTrigger>
-                  </TremorTabsList>
-                  <TremorTabsContent value="builder" className="space-y-5 px-6 mt-4">
+                    </CustomTabsTrigger>
+                  </CustomTabsList>
+                  <CustomTabsContent value="builder" className="space-y-5 px-6 mt-4">
                     {/* Choose Starter (ported) */}
                     <div className="space-y-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Choose Starter</p>
-                      <TremorSelect value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                        <TremorSelectTrigger>
+                      <CustomSelect value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                        <CustomSelectTrigger>
                           {(() => {
                             const t = starterTemplates.find(s => s.id === selectedTemplate)
                             if (!t) return <SelectPrimitives.Value placeholder="Choose a starter template" />
@@ -961,10 +961,10 @@ export function DataTableDrawer({
                               </span>
                             )
                           })()}
-                        </TremorSelectTrigger>
-                        <TremorSelectContent>
+                        </CustomSelectTrigger>
+                        <CustomSelectContent>
                           {starterTemplates.map((template) => (
-                            <TremorSelectItem key={template.id} value={template.id}>
+                            <CustomSelectItem key={template.id} value={template.id}>
                               <span className="flex items-center gap-3">
                                 {template.id === 'openfront' ? (
                                   <OpenfrontIcon className="w-6 h-6" />
@@ -984,10 +984,10 @@ export function DataTableDrawer({
                                   <span className="text-gray-500 dark:text-gray-500 mt-0.5 block text-xs">{template.description}</span>
                                 </span>
                               </span>
-                            </TremorSelectItem>
+                            </CustomSelectItem>
                           ))}
-                        </TremorSelectContent>
-                      </TremorSelect>
+                        </CustomSelectContent>
+                      </CustomSelect>
                       {(() => {
                         const template = starterTemplates.find(t => t.id === selectedTemplate)
                         if (!template) return null
@@ -1065,7 +1065,7 @@ export function DataTableDrawer({
                                     {/* Letter */}
                                     <div className="absolute inset-0 flex items-center justify-center">
                                       <span
-                                        className="font-silkscreen text-primary-foreground select-none"
+                                        className="font-instrument-serif font-bold text-primary-foreground select-none"
                                         style={{ fontSize: 16 }}
                                       >
                                         {capability.toolName.charAt(0).toUpperCase()}
@@ -1110,27 +1110,27 @@ export function DataTableDrawer({
                         </div>
                       )}
                     </div>
-                  </TremorTabsContent>
-                  <TremorTabsContent value="full-prompt" className="space-y-6 px-6 mt-4">
+                  </CustomTabsContent>
+                  <CustomTabsContent value="full-prompt" className="space-y-6 px-6 mt-4">
                     {/* Available MCP Servers */}
                     <div className="space-y-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Available MCP Servers</p>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setGithubMcpEnabled(!githubMcpEnabled)}
-                          className="inline-flex items-center gap-3 px-3 py-2 rounded-lg bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200 hover:from-gray-100 hover:to-gray-150 transition-all duration-200 shadow-sm"
+                          className="inline-flex items-center gap-3 px-3 py-2 rounded-lg bg-gradient-to-b from-background to-muted border border-border hover:from-muted hover:to-muted/80 transition-all duration-200 shadow-sm"
                         >
                           <div className={`inline-block size-2 shrink-0 rounded-full ${
-                            githubMcpEnabled 
-                              ? 'bg-green-500 outline outline-3 -outline-offset-1 outline-green-100' 
-                              : 'bg-red-500 outline outline-3 -outline-offset-1 outline-red-100'
+                            githubMcpEnabled
+                              ? 'bg-green-500 outline outline-3 -outline-offset-1 outline-green-100 dark:outline-green-900'
+                              : 'bg-red-500 outline outline-3 -outline-offset-1 outline-red-100 dark:outline-red-900'
                           }`} />
                           <span className="text-sm font-medium">GitHub MCP</span>
                         </button>
                         
                         <Popover>
                           <PopoverTrigger asChild>
-                            <button className="text-gray-400 hover:text-foreground transition-colors p-1">
+                            <button className="text-muted-foreground hover:text-foreground transition-colors p-1">
                               <Info className="h-4 w-4" />
                             </button>
                           </PopoverTrigger>
@@ -1379,7 +1379,7 @@ export function DataTableDrawer({
                                                       />
                                                     ) : (
                                                       <div 
-                                                        className="flex aspect-square items-center justify-center rounded-sm overflow-hidden text-[8px] font-silkscreen"
+                                                        className="flex aspect-square items-center justify-center rounded-sm overflow-hidden text-[8px] font-instrument-serif font-bold"
                                                         style={{ 
                                                           width: 16, 
                                                           height: 16,
@@ -1498,13 +1498,13 @@ export function DataTableDrawer({
                         </div>
                       </div>
                     </div>
-                  </TremorTabsContent>
-                </TremorTabs>
+                  </CustomTabsContent>
+                </CustomTabs>
               </div>
 
               {/* Footer */}
               <div className="flex border-t border-border pt-4 sm:justify-end -mx-6 -mb-2 gap-2 bg-background px-6">
-                <TremorButton className="w-full" onClick={handleCopyPrompt}>{copied ? "Copied!" : "Copy Prompt"}</TremorButton>
+                <CustomButton className="w-full" onClick={handleCopyPrompt}>{copied ? "Copied!" : "Copy Prompt"}</CustomButton>
               </div>
             </DrawerPrimitives.Content>
           </DrawerPrimitives.Overlay>
@@ -1569,7 +1569,7 @@ export function DataTableDrawer({
                             {/* Letter */}
                             <div className="absolute inset-0 flex items-center justify-center">
                               <span
-                                className="font-silkscreen text-primary-foreground select-none"
+                                className="font-instrument-serif font-bold text-primary-foreground select-none"
                                 style={{ fontSize: 16 }}
                               >
                                 {capability.toolName.charAt(0).toUpperCase()}

@@ -3,6 +3,7 @@ import Navbar from "@/components/ui/navbar";
 import { getAppsData } from "@/actions/getAppsData";
 import { CapabilitiesProvider } from "@/hooks/use-capabilities-config";
 import { PublicSiteLayout } from '../layout';
+import Footer from "@/features/public-site/components/landing/Footer";
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -29,6 +30,7 @@ export default async function PublicLayout({ children }: PublicLayoutProps) {
               </div>
             </div>
             {children}
+            <Footer />
           </div>
         </CapabilitiesProvider>
       </ThemeProvider>
