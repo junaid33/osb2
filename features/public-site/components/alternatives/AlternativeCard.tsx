@@ -15,6 +15,7 @@ interface Capability {
   compatible?: boolean;
   category?: string;
   complexity?: string;
+  isExtra?: boolean;
 }
 
 interface Alternative {
@@ -43,24 +44,26 @@ interface OpenSourceAlternativeProps {
   alternatives?: Alternative[];
   onCapabilityClick?: (capability: string) => void;
   selectedCapabilities?: string[];
+  extraCapabilitiesCount?: number;
 }
 
 // Mini Feature Donut Component
-function CapabilityDonut({ 
-  capability, 
-  onClick, 
-  isSelected = false 
-}: { 
-  capability: Capability; 
+function CapabilityDonut({
+  capability,
+  onClick,
+  isSelected = false
+}: {
+  capability: Capability;
   onClick?: () => void;
   isSelected?: boolean;
 }) {
   const isCompatible = capability.compatible !== false;
-  
+  const isExtra = capability.isExtra === true;
+
   if (!isCompatible) {
-    // For inactive features, show a fully red donut with opacity
+    // For missing features, show a fully red donut with opacity
     return (
-      <div 
+      <div
         className={cn(
           "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border bg-background text-xs cursor-pointer transition-colors",
           isSelected ? "border-orange-500 bg-orange-50" : "hover:bg-muted/50"
@@ -85,9 +88,34 @@ function CapabilityDonut({
       </div>
     );
   }
-  
+
+  if (isExtra) {
+    // For extra capabilities (OS has but proprietary doesn't), show blue donut
+    return (
+      <div
+        className={cn(
+          "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border bg-background text-xs cursor-pointer transition-colors",
+          isSelected ? "border-orange-500 bg-orange-50" : "hover:bg-muted/50"
+        )}
+        onClick={onClick}
+      >
+        <MiniDonutChart
+          value={1}
+          total={1}
+          size={12}
+          strokeWidth={2}
+          color="text-blue-500"
+        />
+        <span className="font-medium text-foreground">
+          {capability.name}
+        </span>
+      </div>
+    );
+  }
+
+  // For matching capabilities, show green donut
   return (
-    <div 
+    <div
       className={cn(
         "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border bg-background text-xs cursor-pointer transition-colors",
         isSelected ? "border-orange-500 bg-orange-50" : "hover:bg-muted/50"
@@ -132,6 +160,7 @@ export function DisplayCard({
   alternatives = [],
   onCapabilityClick,
   selectedCapabilities = [],
+  extraCapabilitiesCount,
   // Legacy props for compatibility
   title,
   starCount,
@@ -302,28 +331,36 @@ export function DisplayCard({
 
       {/* Capability Details with StatusBadge as Trigger */}
       {displayCapabilities.length > 0 && totalCapabilities && totalCapabilities > 0 && (
-        <details 
+        <details
           className="group"
           onToggle={(e) => setIsDetailsOpen((e.target as HTMLDetailsElement).open)}
         >
-          <summary 
+          <summary
             className="cursor-pointer list-none"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="inline-flex items-center gap-x-2.5 rounded-full bg-background px-3 py-2 text-sm border hover:bg-muted/50 transition-colors">
               <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
                 <MiniDonutChart
-                  value={displayCapabilities.filter(f => f.compatible !== false).length}
+                  value={displayCapabilities.filter(f => f.compatible !== false && !f.isExtra).length}
                   total={totalCapabilities}
                   size={16}
                   strokeWidth={2}
                 />
-                {`${displayCapabilities.filter(f => f.compatible !== false).length}/${totalCapabilities}`}
+                {`${displayCapabilities.filter(f => f.compatible !== false && !f.isExtra).length}/${totalCapabilities}`}
               </span>
               <span className="h-4 w-px bg-border" />
               <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                 {`${compatibilityScore || 0}%`}
               </span>
+              {extraCapabilitiesCount !== undefined && extraCapabilitiesCount > 0 && (
+                <>
+                  <span className="h-4 w-px bg-border" />
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    +{extraCapabilitiesCount} more
+                  </span>
+                </>
+              )}
               <span className="h-4 w-px bg-border" />
               <span className="inline-flex items-center">
                 {isDetailsOpen ? (
@@ -339,11 +376,27 @@ export function DisplayCard({
               {displayCapabilities
                 .slice(0, showAllFeatures ? displayCapabilities.length : 8)
                 .sort((a, b) => {
-                  // Sort compatible features first
-                  const aCompatible = a.compatible !== false;
-                  const bCompatible = b.compatible !== false;
-                  if (aCompatible && !bCompatible) return -1;
-                  if (!aCompatible && bCompatible) return 1;
+                  // Sort order: green (matching) -> blue (extra) -> red (missing)
+                  const aIsMatching = a.compatible !== false && !a.isExtra;
+                  const aIsExtra = a.isExtra === true;
+                  const aIsMissing = a.compatible === false;
+
+                  const bIsMatching = b.compatible !== false && !b.isExtra;
+                  const bIsExtra = b.isExtra === true;
+                  const bIsMissing = b.compatible === false;
+
+                  // Green (matching) comes first
+                  if (aIsMatching && !bIsMatching) return -1;
+                  if (!aIsMatching && bIsMatching) return 1;
+
+                  // Blue (extra) comes second
+                  if (aIsExtra && !bIsExtra) return -1;
+                  if (!aIsExtra && bIsExtra) return 1;
+
+                  // Red (missing) comes last
+                  if (aIsMissing && !bIsMissing) return 1;
+                  if (!aIsMissing && bIsMissing) return -1;
+
                   return 0;
                 })
                 .map((capability, index) => (

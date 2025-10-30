@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { Cell, Pie, PieChart } from "recharts";
-import { ChevronLeft, ChevronRight, Pin, Search, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search, ChevronDown } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import ToolIcon from '@/components/ToolIcon';
 import { useBuildStatsCardState, useCapabilityActions } from '@/hooks/use-capabilities-config';
 import { DonutChart } from '@/components/ui/shared-donut-chart';
+import starterAppsConfig from '@/config/starter-apps.json';
 
 
 interface Capability {
@@ -64,12 +65,14 @@ interface OpenSourceApp {
 interface BuildStatsCardProps {
   apps: OpenSourceApp[];
   selectedCapabilities?: Set<string>;
+  selectedStarterId?: string;
 }
 
 
-export default function BuildStatsCard({ 
-  apps, 
-  selectedCapabilities: externalSelectedCapabilities
+export default function BuildStatsCard({
+  apps,
+  selectedCapabilities: externalSelectedCapabilities,
+  selectedStarterId
 }: BuildStatsCardProps) {
   // Get all state from global context
   const { buildStatsCard, updateBuildStatsCard } = useBuildStatsCardState();
@@ -102,19 +105,34 @@ export default function BuildStatsCard({
     return () => document.removeEventListener('keydown', handleEscape)
   }, [updateBuildStatsCard])
 
+  // Organize apps: prioritize apps built with the selected starter
+  const organizedApps = useMemo(() => {
+    const starterConfig = selectedStarterId ? starterAppsConfig[selectedStarterId as keyof typeof starterAppsConfig] : null;
+
+    if (!starterConfig) {
+      return apps;
+    }
+
+    const starterAppSlugs = new Set(starterConfig.appSlugs);
+    const builtWithStarter = apps.filter(app => starterAppSlugs.has(app.slug));
+    const otherApps = apps.filter(app => !starterAppSlugs.has(app.slug));
+
+    return [...builtWithStarter, ...otherApps];
+  }, [apps, selectedStarterId]);
+
   // TODO: Consider moving filtering to GraphQL where clause or implementing search index (FlexSearch)
   // Currently doing client-side filtering - could be improved with proper search index like in OpenFront
   // Filter apps based on search
-  const filteredApps = appSearchTerm.trim() 
-    ? apps.filter(app =>
+  const filteredApps = appSearchTerm.trim()
+    ? organizedApps.filter(app =>
         app.name.toLowerCase().includes(appSearchTerm.toLowerCase()) ||
         app.description?.toLowerCase().includes(appSearchTerm.toLowerCase())
       )
-    : apps;
+    : organizedApps;
 
-  // Ensure currentAppIndex is within bounds
-  const safeCurrentAppIndex = Math.max(0, Math.min(currentAppIndex, apps.length - 1));
-  const currentApp = apps[safeCurrentAppIndex];
+  // Ensure currentAppIndex is within bounds (use organizedApps)
+  const safeCurrentAppIndex = Math.max(0, Math.min(currentAppIndex, organizedApps.length - 1));
+  const currentApp = organizedApps[safeCurrentAppIndex];
   
   // If the index changed due to bounds checking, update it
   if (safeCurrentAppIndex !== currentAppIndex) {
@@ -129,12 +147,12 @@ export default function BuildStatsCard({
   };
 
   const nextApp = () => {
-    const newIndex = (currentAppIndex + 1) % apps.length;
+    const newIndex = (currentAppIndex + 1) % organizedApps.length;
     handleAppChange(newIndex);
   };
 
   const prevApp = () => {
-    const newIndex = (currentAppIndex - 1 + apps.length) % apps.length;
+    const newIndex = (currentAppIndex - 1 + organizedApps.length) % organizedApps.length;
     handleAppChange(newIndex);
   };
 
@@ -153,18 +171,18 @@ export default function BuildStatsCard({
   };
 
   const selectApp = (app: OpenSourceApp) => {
-    const originalIndex = apps.findIndex(a => a.id === app.id);
+    const originalIndex = organizedApps.findIndex(a => a.id === app.id);
     if (originalIndex !== -1) {
       handleAppChange(originalIndex);
     }
-    updateBuildStatsCard({ 
+    updateBuildStatsCard({
       appSearchTerm: '',
-      isAppsDropdownOpen: false 
+      isAppsDropdownOpen: false
     });
   };
 
   const handlePinCapability = (capability: CapabilityItem) => {
-    const currentApp = apps[currentAppIndex];
+    const currentApp = organizedApps[currentAppIndex];
     if (!currentApp) return;
     
     const capabilityImpl = currentApp.capabilities.find(
@@ -194,7 +212,7 @@ export default function BuildStatsCard({
     if (externalSelectedCapabilities?.has(compositeId)) {
       removeCapability(compositeId);
     } else {
-      addCapability(selectedCapability, apps);
+      addCapability(selectedCapability, organizedApps);
     }
   };
 
@@ -303,32 +321,87 @@ export default function BuildStatsCard({
                     {/* Applications List */}
                     <div className="space-y-1 max-h-64 overflow-y-auto">
                       {filteredApps.length > 0 ? (
-                        filteredApps.map((app, index) => (
-                          <button
-                            key={app.id}
-                            onClick={() => selectApp(app)}
-                            className="w-full flex items-center gap-3 p-2 rounded-md text-left hover:bg-muted/50 transition-colors"
-                          >
-                            <ToolIcon
-                              name={app.name}
-                              simpleIconSlug={app.simpleIconSlug}
-                              simpleIconColor={app.simpleIconColor}
-                              size={24}
-                            />
-                            <div className="flex flex-col min-w-0 flex-1">
-                              <div className="text-sm font-medium text-foreground truncate">
-                                {app.name}
-                              </div>
-                              <div className="text-xs text-muted-foreground truncate">
-                                {app.capabilities.length} capabilities
-                              </div>
-                            </div>
-                          </button>
-                        ))
+                        (() => {
+                          const starterConfig = selectedStarterId ? starterAppsConfig[selectedStarterId as keyof typeof starterAppsConfig] : null;
+                          const starterAppSlugs = starterConfig ? new Set(starterConfig.appSlugs) : new Set();
+                          const builtWithStarter = filteredApps.filter(app => starterAppSlugs.has(app.slug));
+                          const otherApps = filteredApps.filter(app => !starterAppSlugs.has(app.slug));
+
+                          return (
+                            <>
+                              {/* Built with this starter section */}
+                              {starterConfig && builtWithStarter.length > 0 && (
+                                <>
+                                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-b border-border flex items-center gap-2">
+                                    <span>Built with {starterConfig.name}</span>
+                                    <span className="inline-flex items-center justify-center rounded-full bg-muted/50 text-muted-foreground px-1.5 py-0.5 text-[10px] font-medium">
+                                      {builtWithStarter.length}
+                                    </span>
+                                  </div>
+                                  {builtWithStarter.map((app) => (
+                                    <button
+                                      key={app.id}
+                                      onClick={() => selectApp(app)}
+                                      className="w-full flex items-center gap-3 p-2 rounded-md text-left hover:bg-muted/50 transition-colors"
+                                    >
+                                      <ToolIcon
+                                        name={app.name}
+                                        simpleIconSlug={app.simpleIconSlug}
+                                        simpleIconColor={app.simpleIconColor}
+                                        size={24}
+                                      />
+                                      <div className="flex flex-col min-w-0 flex-1">
+                                        <div className="text-sm font-medium text-foreground truncate">
+                                          {app.name}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground truncate">
+                                          {app.capabilities.length} capabilities
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </>
+                              )}
+
+                              {/* Other applications section */}
+                              {otherApps.length > 0 && (
+                                <>
+                                  {starterConfig && builtWithStarter.length > 0 && (
+                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-b border-border mt-2">
+                                      Other Applications ({otherApps.length})
+                                    </div>
+                                  )}
+                                  {otherApps.map((app) => (
+                                    <button
+                                      key={app.id}
+                                      onClick={() => selectApp(app)}
+                                      className="w-full flex items-center gap-3 p-2 rounded-md text-left hover:bg-muted/50 transition-colors"
+                                    >
+                                      <ToolIcon
+                                        name={app.name}
+                                        simpleIconSlug={app.simpleIconSlug}
+                                        simpleIconColor={app.simpleIconColor}
+                                        size={24}
+                                      />
+                                      <div className="flex flex-col min-w-0 flex-1">
+                                        <div className="text-sm font-medium text-foreground truncate">
+                                          {app.name}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground truncate">
+                                          {app.capabilities.length} capabilities
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </>
+                              )}
+                            </>
+                          );
+                        })()
                       ) : (
                         <div className="p-4 text-center text-sm text-muted-foreground">
-                          {appSearchTerm.trim() 
-                            ? `No results found for "${appSearchTerm}"` 
+                          {appSearchTerm.trim()
+                            ? `No results found for "${appSearchTerm}"`
                             : "No applications available"
                           }
                         </div>
@@ -347,23 +420,23 @@ export default function BuildStatsCard({
               variant="ghost"
               size="sm"
               onClick={prevApp}
-              disabled={apps.length <= 1}
+              disabled={organizedApps.length <= 1}
               className="h-8 w-8 p-0"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            
+
             {/* Right chevron */}
             <Button
               variant="ghost"
               size="sm"
               onClick={nextApp}
-              disabled={apps.length <= 1}
+              disabled={organizedApps.length <= 1}
               className="h-8 w-8 p-0"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
-            
+
             {/* Donut chart with popover */}
             <Popover>
               <PopoverTrigger asChild>
@@ -451,31 +524,53 @@ export default function BuildStatsCard({
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold truncate">{item.name}</div>
                         <div className="flex items-center gap-1 text-[11px] font-medium">
-                          {item.githubPath && currentApp.repositoryUrl && (
+                          {item.githubPath && (
                             <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(`${currentApp.repositoryUrl}/blob/main/${item.githubPath}`, '_blank');
-                                }}
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                CODE
-                              </button>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-muted-foreground hover:text-foreground"
+                                  >
+                                    CODE
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-3" side="bottom" align="start">
+                                  <a
+                                    href={item.githubPath}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-primary hover:underline break-all"
+                                  >
+                                    {item.githubPath}
+                                  </a>
+                                </PopoverContent>
+                              </Popover>
                               <span className="text-muted-foreground">·</span>
                             </>
                           )}
                           {item.documentationUrl && (
                             <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(item.documentationUrl, '_blank');
-                                }}
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                DOCS
-                              </button>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-muted-foreground hover:text-foreground"
+                                  >
+                                    DOCS
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-3" side="bottom" align="start">
+                                  <a
+                                    href={item.documentationUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-primary hover:underline break-all"
+                                  >
+                                    {item.documentationUrl}
+                                  </a>
+                                </PopoverContent>
+                              </Popover>
                               <span className="text-muted-foreground">·</span>
                             </>
                           )}
@@ -511,7 +606,7 @@ export default function BuildStatsCard({
                       <div className={`flex items-center justify-center size-8 rounded-full bg-primary flex-shrink-0 transition-opacity duration-250 ${
                         isPinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                       }`}>
-                        <Pin className="size-4 text-primary-foreground" />
+                        <Plus className="size-4 text-primary-foreground stroke-3" />
                       </div>
                     )}
                   </div>

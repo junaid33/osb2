@@ -26,7 +26,7 @@ import { NextKeystoneIcon } from "@/components/NextKeystoneIcon"
 import { LogoIcon } from "@/features/dashboard/components/Logo"
 import ToolIcon from '@/components/ToolIcon'
 import BuildStatsCard from './BuildStatsCard'
-import { useCapabilitiesConfig, useCapabilityActions, useLastPinnedTool } from '@/hooks/use-capabilities-config'
+import { useCapabilitiesConfig, useCapabilityActions, useLastPinnedTool, useBuildStatsCardState } from '@/hooks/use-capabilities-config'
 import type { SelectedCapability } from '@/hooks/use-capabilities-config'
 
 // GraphQL query for getting all open source applications
@@ -748,6 +748,7 @@ export function DataTableDrawer({
     },
   ] as const
   const [selectedTemplate, setSelectedTemplate] = React.useState<string>("1")
+  const { updateBuildStatsCard } = useBuildStatsCardState()
   const [copied, setCopied] = React.useState(false)
   const [githubMcpEnabled, setGithubMcpEnabled] = React.useState(true)
   const [showThankYouDialog, setShowThankYouDialog] = React.useState(false)
@@ -934,7 +935,11 @@ export function DataTableDrawer({
                     {/* Choose Starter (ported) */}
                     <div className="space-y-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Choose Starter</p>
-                      <CustomSelect value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                      <CustomSelect value={selectedTemplate} onValueChange={(value) => {
+                        setSelectedTemplate(value)
+                        // Reset to first app when starter changes
+                        updateBuildStatsCard({ currentAppIndex: 0 })
+                      }}>
                         <CustomSelectTrigger>
                           {(() => {
                             const t = starterTemplates.find(s => s.id === selectedTemplate)
@@ -1023,9 +1028,10 @@ export function DataTableDrawer({
                     {/* Build Stats Card */}
                     <div className="space-y-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Find Open Source Capabilities</p>
-                      <BuildStatsCard 
+                      <BuildStatsCard
                         apps={apps}
                         selectedCapabilities={new Set(actualSelectedCapabilities?.map(cap => cap.id) || [])}
+                        selectedStarterId={selectedTemplate}
                       />
 
                       {/* Selected Capabilities - Flat List */}

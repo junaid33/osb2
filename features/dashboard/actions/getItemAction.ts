@@ -31,7 +31,7 @@ const FIELD_GRAPHQL_SELECTIONS: Record<string, (fieldPath: string, fieldMeta?: a
   timestamp: (fieldPath) => fieldPath,
   id: (fieldPath) => fieldPath,
   decimal: (fieldPath) => fieldPath,
-  virtual: (fieldPath, fieldMeta) => `${fieldPath}${fieldMeta?.query || ''}`,
+  virtual: (fieldPath, fieldMeta) => `${fieldPath}${fieldMeta?.query}`,
   image: (fieldPath) => `${fieldPath} {
     id
     url
@@ -72,7 +72,7 @@ export async function getItemAction(
   itemId: string,
   options: any = {},
   cacheOptions?: CacheOptions
-) {
+): Promise<{ success: true; data: any } | { success: false; error: string; errors?: any }> {
   try {
     // Build GraphQL selection for item fields - only non-hidden fields
     const selectedFields = Object.values(list.fields)

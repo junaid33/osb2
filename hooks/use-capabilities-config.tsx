@@ -75,7 +75,7 @@ const saveToLS = (storageKey: string, config: CapabilitiesConfig) => {
 
 const loadFromLS = (storageKey: string, defaultConfig: CapabilitiesConfig): CapabilitiesConfig => {
   if (isServer) return defaultConfig
-  
+
   try {
     // Try to load from new JSON format first
     const savedConfig = localStorage.getItem(storageKey)
@@ -84,23 +84,31 @@ const loadFromLS = (storageKey: string, defaultConfig: CapabilitiesConfig): Capa
       return {
         ...defaultConfig,
         ...parsed,
+        // Always reset these UI states on page load - they should never be persisted
+        buildStatsCard: {
+          ...parsed.buildStatsCard,
+          currentAppIndex: 0, // Always start with first app
+          isAppsDropdownOpen: false, // Always start closed
+          appSearchTerm: '', // Clear search
+        }
       }
     }
-    
+
     // Fallback to legacy pinnedCapabilities key for backward compatibility
     const pinnedCapabilities = localStorage.getItem('pinnedCapabilities')
     if (pinnedCapabilities) {
       const selectedCapabilities = JSON.parse(pinnedCapabilities) as SelectedCapability[]
       const config: CapabilitiesConfig = {
+        ...defaultConfig,
         selectedCapabilities,
       }
-      
+
       // Migrate to new format
       saveToLS(storageKey, config)
-      
+
       return config
     }
-    
+
     return defaultConfig
   } catch {
     return defaultConfig

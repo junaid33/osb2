@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, Info, Wand2 } from "lucide-react";
+import { Sparkles, Info, Wand2, Leaf, Globe } from "lucide-react";
 import { Logo } from "@/features/dashboard/components/Logo";
 import { Button } from "@/components/ui/button";
 import { NavbarSearch } from "@/features/public-site/components/search/NavbarSearch";
@@ -56,38 +56,28 @@ export default function Navbar({ className, apps }: NavbarProps) {
             </div>
 
             {/* Right side - About and Build button */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               {/* About - outline button on desktop, icon only on mobile */}
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 asChild
-                className="hidden sm:flex"
               >
-                <a href="/about">
-                  About
+                <a href="/ethos">
+                <Globe className="size-3.5" />
+                  Ethos
                 </a>
               </Button>
 
-              {/* About - icon only on mobile */}
-              <Button
-                variant="outline"
-                size="icon"
-                asChild
-                className="sm:hidden"
-              >
-                <a href="/about">
-                  <Info className="size-3.5" />
-                </a>
-              </Button>
+           
 
               {/* Build - text on desktop, icon only on mobile */}
               <Button
                 size="sm"
-                className="hidden sm:flex"
+                className="hidden sm:flex gap-3"
                 onClick={() => setDrawerOpen(true)}
               >
-                <Wand2 className="size-3.5" />
+                <Wand2 className="size-3" />
                 Build
               </Button>
 
@@ -97,7 +87,7 @@ export default function Navbar({ className, apps }: NavbarProps) {
                 className="sm:hidden"
                 onClick={() => setDrawerOpen(true)}
               >
-                <Wand2 className="size-3.5" />
+                <Wand2 className="size-3" />
               </Button>
             </div>
           </div>

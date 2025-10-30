@@ -2,4 +2,4 @@
 export { LandingPage } from './LandingPage';
 export { AlternativesPageClient } from './AlternativesPage';
 export { AlternativesPageServer } from './AlternativesPageServer';
-export { AboutPage } from './AboutPage';
+export { EthosPage } from './EthosPage';

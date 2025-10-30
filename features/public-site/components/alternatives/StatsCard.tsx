@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { Cell, Pie, PieChart } from "recharts";
-import { ChevronLeft, ChevronRight, Pin, Search, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search, ChevronDown } from "lucide-react";
 import debounce from 'lodash.debounce';
 import {
   Popover,
@@ -272,10 +272,10 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
             <div className="relative flex-1 min-w-0">
               <button
                 onClick={toggleAlternativesDropdown}
-                className="flex items-center gap-1 text-left"
+                className="flex items-center gap-1 text-left min-w-0 w-full"
               >
-                <div className="flex flex-col items-start min-w-0">
-                  <div className="flex items-center gap-1">
+                <div className="flex flex-col items-start min-w-0 flex-1">
+                  <div className="flex items-center gap-1 min-w-0 w-full">
                     <h3 className="text-sm font-medium text-foreground truncate">{currentAlternative.name}</h3>
                     <ChevronDown 
                       className={`h-4 w-4 transition-transform duration-200 flex-shrink-0 ${
@@ -357,28 +357,31 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
           
           {/* Right side: Navigation and donut */}
           <div className="flex items-center gap-2">
-            {/* Left chevron */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={prevAlternative}
-              disabled={openSourceAlternatives.length <= 1}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            
-            {/* Right chevron */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={nextAlternative}
-              disabled={openSourceAlternatives.length <= 1}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-            
+            {/* Navigation arrows - only show if more than one alternative */}
+            {openSourceAlternatives.length > 1 && (
+              <>
+                {/* Left chevron */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={prevAlternative}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+
+                {/* Right chevron */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={nextAlternative}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+
             {/* Donut chart with popover */}
             <Popover>
               <PopoverTrigger asChild>
@@ -545,7 +548,7 @@ export default function StatsCard({ capabilities = [], openSourceAlternatives = 
                       <div className={`flex items-center justify-center size-8 rounded-full bg-primary flex-shrink-0 transition-opacity duration-250 ${
                         isPinned || isHovered ? 'opacity-100' : 'opacity-0'
                       }`}>
-                        <Pin className="size-4 text-primary-foreground" />
+                        <Plus className="size-4 text-primary-foreground stroke-3" />
                       </div>
                     )}
                   </div>
